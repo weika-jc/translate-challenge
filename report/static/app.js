@@ -45,6 +45,11 @@ function fmtPct(v) {
   return `${v}%`;
 }
 
+function fmtSigned(v) {
+  if (v == null || Number.isNaN(v)) return '—';
+  return `${v > 0 ? '+' : ''}${v}`;
+}
+
 function fmtMalformed(summary) {
   const n = summary.malformed_count;
   if (n == null) return '—';
@@ -324,6 +329,159 @@ function renderCompare() {
   }).join('');
 }
 
+function pairKey(pair) {
+  return `${pair.model_a}|||${pair.model_b}`;
+}
+
+function orientPair(pair, rowModel, columnModel) {
+  const rowIsA = pair.model_a === rowModel;
+  const reverse = value => value == null ? null : -value;
+  return {
+    rowModel,
+    columnModel,
+    rowWins: rowIsA ? pair.model_a_wins : pair.model_b_wins,
+    columnWins: rowIsA ? pair.model_b_wins : pair.model_a_wins,
+    ties: pair.ties,
+    rowAvg: rowIsA ? pair.model_a_avg_score : pair.model_b_avg_score,
+    columnAvg: rowIsA ? pair.model_b_avg_score : pair.model_a_avg_score,
+    meanDelta: rowIsA ? pair.mean_score_delta : reverse(pair.mean_score_delta),
+    medianDelta: rowIsA ? pair.median_score_delta : reverse(pair.median_score_delta),
+    ciLow: rowIsA ? pair.ci95_low : reverse(pair.ci95_high),
+    ciHigh: rowIsA ? pair.ci95_high : reverse(pair.ci95_low),
+    result: pair.winner === rowModel ? 'win' : pair.winner === columnModel ? 'loss' : 'uncertain',
+    commonCount: pair.common_count,
+    pairedCount: pair.score_paired_count,
+    coverage: pair.score_coverage,
+    unscoredCount: pair.unscored_common_count,
+    rowOnlyCount: rowIsA ? pair.model_a_only_count : pair.model_b_only_count,
+    columnOnlyCount: rowIsA ? pair.model_b_only_count : pair.model_a_only_count,
+  };
+}
+
+function pairResultText(result) {
+  if (result === 'win') return '纵轴模型显著更优';
+  if (result === 'loss') return '纵轴模型显著更差';
+  return '差异不明确';
+}
+
+function pairAriaLabel(pair) {
+  return `${pair.rowModel} 相对 ${pair.columnModel}：${pairResultText(pair.result)}，平均分差 ${fmtSigned(pair.meanDelta)}，95% 置信区间 ${fmtSigned(pair.ciLow)} 到 ${fmtSigned(pair.ciHigh)}`;
+}
+
+function pairTooltipMarkup(pair) {
+  return `
+    <div class="tooltip-kicker">纵轴相对横轴</div>
+    <div class="tooltip-models">
+      <strong>${esc(pair.rowModel)}</strong><span>vs</span><strong>${esc(pair.columnModel)}</strong>
+    </div>
+    <div class="tooltip-verdict ${pair.result}">
+      <i class="legend-dot ${pair.result}"></i>${pairResultText(pair.result)}
+    </div>
+    <div class="tooltip-metrics">
+      <div><span>平均分差</span><strong>${fmtSigned(pair.meanDelta)}</strong></div>
+      <div><span>中位数差</span><strong>${fmtSigned(pair.medianDelta)}</strong></div>
+      <div><span>95% CI</span><strong>[${fmtSigned(pair.ciLow)}, ${fmtSigned(pair.ciHigh)}]</strong></div>
+      <div><span>配对覆盖</span><strong>${pair.pairedCount} / ${pair.commonCount}</strong></div>
+    </div>
+    <div class="tooltip-scoreline">
+      <span><b>${pair.rowWins}</b> 纵轴胜</span>
+      <span><b>${pair.ties}</b> 平</span>
+      <span><b>${pair.columnWins}</b> 横轴胜</span>
+    </div>
+    <div class="tooltip-foot">
+      配对均分 ${fmt(pair.rowAvg)} / ${fmt(pair.columnAvg)} · 覆盖率 ${fmtPct(pair.coverage)}
+      ${pair.unscoredCount ? ` · 未评分 ${pair.unscoredCount}` : ''}
+      ${pair.rowOnlyCount || pair.columnOnlyCount ? ` · 独有样本 ${pair.rowOnlyCount} / ${pair.columnOnlyCount}` : ''}
+    </div>`;
+}
+
+function positionPairTooltip(target) {
+  const tooltip = document.getElementById('pair-tooltip');
+  const targetRect = target.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const gap = 12;
+  let left = targetRect.right + gap;
+  if (left + tooltipRect.width > window.innerWidth - gap) {
+    left = targetRect.left - tooltipRect.width - gap;
+  }
+  left = Math.max(gap, Math.min(left, window.innerWidth - tooltipRect.width - gap));
+  let top = targetRect.top + targetRect.height / 2 - tooltipRect.height / 2;
+  top = Math.max(gap, Math.min(top, window.innerHeight - tooltipRect.height - gap));
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function showPairTooltip(target, pair) {
+  const tooltip = document.getElementById('pair-tooltip');
+  tooltip.innerHTML = pairTooltipMarkup(pair);
+  tooltip.classList.remove('hidden');
+  positionPairTooltip(target);
+}
+
+function hidePairTooltip() {
+  document.getElementById('pair-tooltip').classList.add('hidden');
+}
+
+function renderPairwise() {
+  const section = document.getElementById('pairwise-section');
+  const comparison = state.data.comparisons;
+  const pairs = comparison?.pairs || [];
+  if (!pairs.length) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+
+  const method = comparison.methodology;
+  document.getElementById('pairwise-method').textContent =
+    `只比较共同且都有评分的样本；精确同分记平局。置信区间使用 ${method.bootstrap_iterations} 次固定种子的配对 bootstrap。`;
+
+  const models = state.data.models.map(model => model.name).sort((a, b) => a.localeCompare(b));
+  const pairMap = new Map();
+  pairs.forEach(pair => {
+    pairMap.set(`${pair.model_a}|||${pair.model_b}`, pair);
+    pairMap.set(`${pair.model_b}|||${pair.model_a}`, pair);
+  });
+
+  const matrix = document.getElementById('pairwise-matrix');
+  matrix.innerHTML = `
+    <thead><tr>
+      <th class="matrix-corner" scope="col"><span>纵轴 ↓</span><span>横轴 →</span></th>
+      ${models.map(model => `<th class="matrix-column-label" scope="col"><span>${esc(model)}</span></th>`).join('')}
+    </tr></thead>
+    <tbody>${models.map((rowModel, rowIndex) => `<tr>
+      <th class="matrix-row-label" scope="row">${esc(rowModel)}</th>
+      ${models.map((columnModel, columnIndex) => {
+        if (rowModel === columnModel) {
+          return '<td class="matrix-data diagonal" aria-label="同一模型，无需比较"><span>—</span></td>';
+        }
+        const rawPair = pairMap.get(`${rowModel}|||${columnModel}`);
+        if (!rawPair) {
+          return '<td class="matrix-data unavailable" aria-label="无配对数据"><span>·</span></td>';
+        }
+        const oriented = orientPair(rawPair, rowModel, columnModel);
+        return `<td class="matrix-data" data-row-index="${rowIndex}" data-column-index="${columnIndex}">
+          <button class="matrix-cell ${oriented.result}" type="button"
+            data-pair-key="${esc(pairKey(rawPair))}"
+            data-row-model="${esc(rowModel)}"
+            data-column-model="${esc(columnModel)}"
+            aria-label="${esc(pairAriaLabel(oriented))}">
+            <span class="matrix-dot" aria-hidden="true"></span>
+          </button>
+        </td>`;
+      }).join('')}
+    </tr>`).join('')}</tbody>`;
+
+  matrix.querySelectorAll('.matrix-cell').forEach(cell => {
+    const rawPair = pairs.find(pair => pairKey(pair) === cell.dataset.pairKey);
+    const oriented = orientPair(rawPair, cell.dataset.rowModel, cell.dataset.columnModel);
+    cell.addEventListener('mouseenter', () => showPairTooltip(cell, oriented));
+    cell.addEventListener('focus', () => showPairTooltip(cell, oriented));
+    cell.addEventListener('mouseleave', hidePairTooltip);
+    cell.addEventListener('blur', hidePairTooltip);
+  });
+}
+
 function destroyChart(id) {
   if (state.charts[id]) {
     state.charts[id].destroy();
@@ -563,6 +721,7 @@ function render() {
   renderTabs();
   renderOverview();
   renderCompare();
+  renderPairwise();
   renderCharts();
   populateFilters();
   loadRecords();

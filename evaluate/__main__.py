@@ -17,8 +17,9 @@ from .utils import rate, translate
 input_dir = 'output'
 output_dir = 'result'
 limit = 10
-model_name = 'claude-haiku-4-5'
+model_name = 'haiku-4-5-opt'
 model_id = 'arn:aws:bedrock:us-west-2:686465264859:prompt/7ZJL56AKIU'  # test model
+translation_structured_output = True
 # model_name = 'gpt-oss-120b'
 # model_id = 'arn:aws:bedrock:us-west-2:686465264859:prompt/1FWKA83D84'  # alter model
 
@@ -27,6 +28,7 @@ record_lock = asyncio.Lock()
 CSV_FIELDS = [
     'dataset', 'src', 'tgt', 'raw', 'ref',
     'trans_raw', 'trans',
+    'translation_structured',
     'call_success', 'call_error',
     'format_valid', 'format_error',
     'language_valid', 'language_check',
@@ -49,7 +51,12 @@ async def evaluate_file(dataset: str, data_path: str, ref_path: str, src: str, t
             continue
         call_error = None
         try:
-            result = await translate(model_id, raw, tgt)
+            result = await translate(
+                model_id,
+                raw,
+                tgt,
+                structured=translation_structured_output,
+            )
         except Exception as exc:
             result = None
             call_error = f'{type(exc).__name__}: {exc}'
@@ -82,6 +89,7 @@ async def evaluate_file(dataset: str, data_path: str, ref_path: str, src: str, t
             'ref': ref,
             'trans_raw': trans_raw,
             'trans': trans,
+            'translation_structured': translation_structured_output,
             'call_success': call_success,
             'call_error': call_error,
             'format_valid': format_valid,

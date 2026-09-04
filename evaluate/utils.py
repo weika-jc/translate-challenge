@@ -6,7 +6,12 @@ from botocore.config import Config
 from botocore.exceptions import ClientError, SSOError
 
 from .prompt import build_judge_prompt
-from .protocol import JUDGE_OUTPUT_SCHEMA, parse_judge_output, score_judge_errors
+from .protocol import (
+    JUDGE_OUTPUT_SCHEMA,
+    TRANSLATION_OUTPUT_SCHEMA,
+    parse_judge_output,
+    score_judge_errors,
+)
 
 session = boto3.Session(profile_name='aigc')
 bedrock_runtime = session.client(
@@ -36,11 +41,46 @@ async def _converse(client=bedrock_runtime, **kwargs):
     return await asyncio.to_thread(client.converse, **kwargs)
 
 
-async def translate(model_id: str, txt: str, tgt: str) -> dict | None:
+def _structured_output_config(schema: dict, name: str, description: str) -> dict:
+    return {
+        'textFormat': {
+            'type': 'json_schema',
+            'structure': {
+                'jsonSchema': {
+                    'schema': json.dumps(
+                        schema, ensure_ascii=False, separators=(',', ':'),
+                    ),
+                    'name': name,
+                    'description': description,
+                },
+            },
+        },
+    }
+
+
+async def translate(
+    model_id: str,
+    txt: str,
+    tgt: str,
+    structured: bool = False,
+) -> dict | None:
     print(f'[debug] translate {txt} -> {tgt}')
     message = f'{txt} -> {tgt}'
+    kwargs = {
+        'modelId': model_id,
+        'promptVariables': {'input': {'text': message}},
+    }
+    if structured:
+        kwargs['outputConfig'] = _structured_output_config(
+            TRANSLATION_OUTPUT_SCHEMA,
+            'translation_result',
+            'Translated text in the c field',
+        )
+
     start = time.perf_counter()
-    response = await _converse(modelId=model_id, promptVariables={ 'input': { 'text': message } })
+    # Deliberately do not retry without structured output. A rejected request or
+    # unusable response is part of the translation scheme's measured failure rate.
+    response = await _converse(**kwargs)
     latency_ms = round((time.perf_counter() - start) * 1000, 2)
 
     text = None
@@ -58,6 +98,7 @@ async def translate(model_id: str, txt: str, tgt: str) -> dict | None:
         'output_tokens': usage.get('outputTokens'),
         'total_tokens': usage.get('totalTokens'),
         'latency_ms': latency_ms,
+        'structured': structured,
     }
 
 
@@ -69,18 +110,11 @@ async def invoke_generic_model(model_id: str, txt: str, structured: bool = True)
         'inferenceConfig': {'temperature': 0, 'maxTokens': 256},
     }
     if structured:
-        kwargs['outputConfig'] = {
-            'textFormat': {
-                'type': 'json_schema',
-                'structure': {
-                    'jsonSchema': {
-                        'schema': json.dumps(JUDGE_OUTPUT_SCHEMA, ensure_ascii=False),
-                        'name': 'translation_errors',
-                        'description': 'MQM-lite translation error categories and severities',
-                    },
-                },
-            },
-        }
+        kwargs['outputConfig'] = _structured_output_config(
+            JUDGE_OUTPUT_SCHEMA,
+            'translation_errors',
+            'MQM-lite translation error categories and severities',
+        )
 
     start = time.perf_counter()
     response = await _converse(client=judge_runtime, **kwargs)

@@ -13,6 +13,15 @@ ERROR_CATEGORIES = ('accuracy', 'fluency', 'tone', 'terminology', 'preservation'
 ERROR_SEVERITIES = ('critical', 'major', 'minor')
 SCORE_PENALTIES = {'critical': 40, 'major': 15, 'minor': 3}
 
+TRANSLATION_OUTPUT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'c': {'type': 'string'},
+    },
+    'required': ['c'],
+    'additionalProperties': False,
+}
+
 JUDGE_OUTPUT_SCHEMA = {
     'type': 'object',
     'properties': {

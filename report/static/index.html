@@ -29,7 +29,7 @@
 
       <section id="compare-section" class="compare-section hidden">
         <h2 class="section-title">模型对比</h2>
-        <div class="panel">
+        <div class="panel table-scroll">
           <table class="compare-table" id="compare-table">
             <thead>
               <tr>
@@ -52,6 +52,31 @@
             <tbody></tbody>
           </table>
         </div>
+      </section>
+
+      <section id="pairwise-section" class="compare-section hidden">
+        <div class="section-heading">
+          <div>
+            <h2 class="section-title">配对质量比较</h2>
+            <p class="section-note" id="pairwise-method"></p>
+          </div>
+          <div class="matrix-legend" aria-label="比较结果图例">
+            <span><i class="legend-dot win"></i>纵轴更优</span>
+            <span><i class="legend-dot loss"></i>纵轴更差</span>
+            <span><i class="legend-dot uncertain"></i>差异不明确</span>
+          </div>
+        </div>
+        <div class="panel comparison-matrix-panel">
+          <div class="matrix-axis-note">
+            <span class="axis-row">纵轴模型</span>
+            <span class="axis-relation">相对</span>
+            <span class="axis-column">横轴模型</span>
+          </div>
+          <div class="matrix-scroll">
+            <table class="pairwise-matrix" id="pairwise-matrix" aria-label="模型配对质量比较矩阵"></table>
+          </div>
+        </div>
+        <div class="pair-tooltip hidden" id="pair-tooltip" role="tooltip"></div>
       </section>
 
       <section>

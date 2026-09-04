@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -5,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import evaluate.__main__ as pipeline
 import evaluate.utils as evaluate_utils
+from evaluate.protocol import TRANSLATION_OUTPUT_SCHEMA
 
 
 class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
@@ -39,18 +41,27 @@ class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
             source_path.write_text('Hello 3 🎉\n', encoding='utf-8')
             reference_path.write_text('Bonjour 3 🎉\n', encoding='utf-8')
             with (
-                patch.object(pipeline, 'translate', AsyncMock(return_value=translation_result)),
+                patch.object(
+                    pipeline, 'translate', AsyncMock(return_value=translation_result),
+                ) as translator,
                 patch.object(pipeline, 'rate', AsyncMock(return_value=judge_result)) as judge,
             ):
                 await pipeline.evaluate_file(
                     'test', str(source_path), str(reference_path), 'en', 'fr',
                 )
 
+        translator.assert_awaited_once_with(
+            pipeline.model_id,
+            'Hello 3 🎉',
+            'fr',
+            structured=True,
+        )
         judge.assert_awaited_once_with('Hello 3 🎉', 'Bonjour 3 🎉', 'fr', 'Bonjour 3 🎉')
         self.assertEqual(len(pipeline.records), 1)
         record = pipeline.records[0]
         self.assertEqual(record['trans_raw'], '{"c":"Bonjour 3 🎉"}')
         self.assertEqual(record['trans'], 'Bonjour 3 🎉')
+        self.assertTrue(record['translation_structured'])
         self.assertTrue(record['call_success'])
         self.assertTrue(record['format_valid'])
         self.assertTrue(record['policy_pass'])
@@ -99,6 +110,35 @@ class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
             converse.await_args.kwargs['promptVariables']['input']['text'],
             'Hello -> es',
         )
+        self.assertNotIn('outputConfig', converse.await_args.kwargs)
+
+    async def test_translate_uses_structured_output_when_enabled(self):
+        response = {
+            'output': {'message': {'content': [{'text': '{"c":"Hola"}'}]}},
+            'usage': {},
+        }
+        converse = AsyncMock(return_value=response)
+        with patch.object(evaluate_utils, '_converse', converse):
+            result = await evaluate_utils.translate(
+                'prompt-arn', 'Hello', 'es', structured=True,
+            )
+
+        json_schema = converse.await_args.kwargs['outputConfig']['textFormat'][
+            'structure'
+        ]['jsonSchema']
+        self.assertEqual(json.loads(json_schema['schema']), TRANSLATION_OUTPUT_SCHEMA)
+        self.assertEqual(json_schema['name'], 'translation_result')
+        self.assertTrue(result['structured'])
+
+    async def test_translate_does_not_fallback_when_structured_call_fails(self):
+        converse = AsyncMock(side_effect=RuntimeError('structured output rejected'))
+        with patch.object(evaluate_utils, '_converse', converse):
+            with self.assertRaisesRegex(RuntimeError, 'structured output rejected'):
+                await evaluate_utils.translate(
+                    'prompt-arn', 'Hello', 'es', structured=True,
+                )
+
+        converse.assert_awaited_once()
 
     async def test_translate_preserves_quotes_present_in_source(self):
         response = {
