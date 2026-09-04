@@ -124,15 +124,23 @@ def policy_warning_errors(policy: PolicyCheck) -> list[dict[str, str]]:
     return errors
 
 
-_LANG_ALIASES = {'jp': 'ja', 'nb': 'no', 'zh-cn': 'zh-cn', 'zh-tw': 'zh-tw'}
+_BUSINESS_LANG_ALIASES = {'ja': 'jp', 'no': 'nb'}
+_DETECTOR_LANG_ALIASES = {'jp': 'ja', 'nb': 'no', 'zh-cn': 'zh-cn', 'zh-tw': 'zh-tw'}
 _JAPANESE_KANA_RE = re.compile(r'[\u3040-\u30ff]')
 _HAN_RE = re.compile(r'[\u3400-\u4dbf\u4e00-\u9fff]')
 _CJK_RE = re.compile(r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]')
 
 
-def normalize_language(code: str) -> str:
+def canonical_language_code(code: str) -> str:
+    """Convert dataset-facing aliases to the language codes used by the product."""
     code = code.strip().lower().replace('_', '-')
-    return _LANG_ALIASES.get(code, code)
+    return _BUSINESS_LANG_ALIASES.get(code, code)
+
+
+def normalize_language(code: str) -> str:
+    """Convert product codes to the codes emitted by the language detector."""
+    code = canonical_language_code(code)
+    return _DETECTOR_LANG_ALIASES.get(code, code)
 
 
 def check_language(text: str, target: str) -> LanguageCheck:

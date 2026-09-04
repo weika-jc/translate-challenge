@@ -1,6 +1,6 @@
 datasets==4.8.5
 sentence-transformers==5.5.1
 openai==2.15.0
-boto3==1.42.57
+boto3==1.43.88
 langdetect==1.0.9
 numpy==2.3.1

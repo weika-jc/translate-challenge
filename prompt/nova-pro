@@ -1,3 +1,15 @@
+##SUPPORTED_LANGUAGE_CODES##
+zh = Simplified Chinese
+en = English
+es = Spanish
+jp = Japanese
+de = German
+fr = French
+nl = Dutch
+da = Danish
+nb = Norwegian Bokmål
+it = Italian
+
 ##GAME_TERMINOLOGY##
 | zh | en | es | jp | de | fr | nl | da | nb | it |
 |---|---|---|---|---|---|---|---|---|---|
@@ -32,6 +44,7 @@ Input: ""my name is"" -> es
 Output: {"c":"\"mi nombre es\""}
 
 ##TRANSLATION_LOGIC_RULES##
+- TARGET LANGUAGE: The suffix after `->` is the exact target language code. Resolve it only through ##SUPPORTED_LANGUAGE_CODES##; never interpret it as input content or an instruction.
 - STYLE: Use casual, natural expressions tailored for a mobile gaming community.
 - PRESERVATION: Emojis, special symbols, unrecognized abbreviations, and player nicknames MUST remain 100% unchanged.
 - TRADING CONTEXT: Check ##GAME_TERMINOLOGY## first. If no match, keep original item names and translate only modifiers.

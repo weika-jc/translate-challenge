@@ -91,6 +91,49 @@ class ReportComparisonTests(unittest.TestCase):
             self.assertEqual(categories['fluency']['minor'], 1)
             self.assertEqual(categories['tone']['error_count'], 0)
 
+    def test_retry_reliability_is_separate_from_final_quality(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'retries.csv'
+            fields = [
+                'dataset', 'src', 'tgt', 'raw', 'ref', 'trans_raw', 'trans',
+                'translation_score', 'latency_ms', 'call_success', 'format_valid',
+                'call_attempts', 'call_retries', 'first_call_success',
+                'first_output_valid', 'recovered_by_retry',
+            ]
+            with path.open('w', encoding='utf-8', newline='') as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows([
+                    {
+                        'dataset': 'demo', 'src': 'en', 'tgt': 'fr',
+                        'raw': 'one', 'ref': 'un', 'trans_raw': '{"c":"un"}',
+                        'trans': 'un', 'translation_score': '100', 'latency_ms': '10',
+                        'call_success': 'True', 'format_valid': 'True',
+                        'call_attempts': '1', 'call_retries': '0',
+                        'first_call_success': 'True', 'first_output_valid': 'True',
+                        'recovered_by_retry': 'False',
+                    },
+                    {
+                        'dataset': 'demo', 'src': 'en', 'tgt': 'fr',
+                        'raw': 'two', 'ref': 'deux', 'trans_raw': '{"c":"deux"}',
+                        'trans': 'deux', 'translation_score': '100', 'latency_ms': '20',
+                        'call_success': 'True', 'format_valid': 'True',
+                        'call_attempts': '2', 'call_retries': '1',
+                        'first_call_success': 'True', 'first_output_valid': 'False',
+                        'recovered_by_retry': 'True',
+                    },
+                ])
+
+            summary = summarize(load_models([str(path)])['models'][0]['records'])
+
+        self.assertEqual(summary['avg_score'], 100)
+        self.assertEqual(summary['first_call_success_ratio'], 100)
+        self.assertEqual(summary['first_output_valid_ratio'], 50)
+        self.assertEqual(summary['first_request_success_ratio'], 50)
+        self.assertEqual(summary['retried_count'], 1)
+        self.assertEqual(summary['recovered_by_retry_count'], 1)
+        self.assertEqual(summary['avg_retries'], 0.5)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -27,6 +27,33 @@
         <div class="cards" id="overview-cards"></div>
       </section>
 
+      <section id="reliability-section" class="compare-section hidden">
+        <div class="section-heading">
+          <div>
+            <h2 class="section-title">调用可靠性</h2>
+            <p class="section-note">首次请求成功表示第一次即得到可用结果；调用返回率只看服务是否返回。最终恢复后的结果才进入质量评分。</p>
+          </div>
+        </div>
+        <div class="panel table-scroll">
+          <table class="compare-table reliability-table" id="reliability-table">
+            <thead>
+              <tr>
+                <th>模型</th>
+                <th>阶段</th>
+                <th>已记录</th>
+                <th>首次请求成功率</th>
+                <th>首次调用返回率</th>
+                <th>发生重试</th>
+                <th>重试恢复</th>
+                <th>最终不可用</th>
+                <th>平均重试</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="compare-section" class="compare-section hidden">
         <h2 class="section-title">模型对比</h2>
         <div class="panel table-scroll">
@@ -133,6 +160,7 @@
                 <th>模型输出</th>
                 <th>评分</th>
                 <th>状态</th>
+                <th>调用</th>
                 <th>延迟</th>
                 <th>Token</th>
                 <th>价格</th>

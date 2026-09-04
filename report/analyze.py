@@ -114,6 +114,11 @@ def load_csv(path: str) -> list[dict]:
                 'call_failed': call_failed,
                 'call_success': call_success,
                 'call_error': row.get('call_error', ''),
+                'call_attempts': _num(row.get('call_attempts'), int),
+                'call_retries': _num(row.get('call_retries'), int),
+                'first_call_success': _bool(row.get('first_call_success')),
+                'first_output_valid': _bool(row.get('first_output_valid')),
+                'recovered_by_retry': _bool(row.get('recovered_by_retry')),
                 'format_error': row.get('format_error', ''),
                 'language_valid': _bool(row.get('language_valid')),
                 'language_check': language_check,
@@ -124,6 +129,11 @@ def load_csv(path: str) -> list[dict]:
                 'judge_success': _bool(row.get('judge_success')),
                 'judge_acceptable': _bool(row.get('judge_acceptable')),
                 'judge_error': row.get('judge_error', ''),
+                'judge_attempts': _num(row.get('judge_attempts'), int),
+                'judge_retries': _num(row.get('judge_retries'), int),
+                'judge_first_call_success': _bool(row.get('judge_first_call_success')),
+                'judge_first_output_valid': _bool(row.get('judge_first_output_valid')),
+                'judge_recovered_by_retry': _bool(row.get('judge_recovered_by_retry')),
                 'judge_raw': row.get('judge_raw', ''),
                 'judge_errors': _json(row.get('judge_errors'), []),
                 'score': score,
@@ -282,6 +292,20 @@ def summarize(records: list[dict]) -> dict:
     policy_checked_count = sum(1 for r in records if r['policy_pass'] is not None)
     judge_failed_count = sum(1 for r in records if r['judge_success'] is False)
     judge_attempted_count = sum(1 for r in records if r['judge_success'] is not None)
+    retry_tracked = [r for r in records if r['call_attempts'] is not None]
+    retry_counts = [r['call_retries'] or 0 for r in retry_tracked]
+    first_call_success_count = sum(
+        1 for r in retry_tracked if r['first_call_success'] is True
+    )
+    first_output_valid_count = sum(
+        1 for r in retry_tracked if r['first_output_valid'] is True
+    )
+    retried_count = sum(1 for retries in retry_counts if retries > 0)
+    recovered_by_retry_count = sum(
+        1 for r in retry_tracked if r['recovered_by_retry'] is True
+    )
+    judge_retry_tracked = [r for r in records if r['judge_attempts'] is not None]
+    judge_retry_counts = [r['judge_retries'] or 0 for r in judge_retry_tracked]
 
     return {
         'count': len(records),
@@ -291,6 +315,26 @@ def summarize(records: list[dict]) -> dict:
         'call_failed_count': call_failed_count,
         'call_success_count': call_success_count,
         'call_failure_ratio': round(call_failed_count / len(records) * 100, 2) if records else None,
+        'retry_tracked_count': len(retry_tracked),
+        'total_call_attempts': sum(r['call_attempts'] for r in retry_tracked),
+        'total_retries': sum(retry_counts),
+        'avg_retries': _avg(retry_counts),
+        'retried_count': retried_count,
+        'recovered_by_retry_count': recovered_by_retry_count,
+        'first_call_success_count': first_call_success_count,
+        'first_call_success_ratio': round(
+            first_call_success_count / len(retry_tracked) * 100, 2,
+        ) if retry_tracked else None,
+        'first_output_valid_count': first_output_valid_count,
+        'first_output_valid_ratio': round(
+            first_output_valid_count / len(retry_tracked) * 100, 2,
+        ) if retry_tracked else None,
+        # A request counts as successful for the evaluation pipeline only when
+        # its first response is both returned and directly usable.
+        'first_request_success_count': first_output_valid_count,
+        'first_request_success_ratio': round(
+            first_output_valid_count / len(retry_tracked) * 100, 2,
+        ) if retry_tracked else None,
         'language_invalid_count': language_invalid_count,
         'language_unknown_count': language_unknown_count,
         'language_checked_count': language_checked_count,
@@ -308,6 +352,27 @@ def summarize(records: list[dict]) -> dict:
         'judge_failure_ratio': round(
             judge_failed_count / judge_attempted_count * 100, 2,
         ) if judge_attempted_count else None,
+        'judge_retry_tracked_count': len(judge_retry_tracked),
+        'judge_total_retries': sum(judge_retry_counts),
+        'judge_retried_count': sum(1 for retries in judge_retry_counts if retries > 0),
+        'judge_recovered_by_retry_count': sum(
+            1 for r in judge_retry_tracked if r['judge_recovered_by_retry'] is True
+        ),
+        'judge_first_call_success_ratio': round(
+            sum(1 for r in judge_retry_tracked if r['judge_first_call_success'] is True)
+            / len(judge_retry_tracked) * 100,
+            2,
+        ) if judge_retry_tracked else None,
+        'judge_first_output_valid_ratio': round(
+            sum(1 for r in judge_retry_tracked if r['judge_first_output_valid'] is True)
+            / len(judge_retry_tracked) * 100,
+            2,
+        ) if judge_retry_tracked else None,
+        'judge_first_request_success_ratio': round(
+            sum(1 for r in judge_retry_tracked if r['judge_first_output_valid'] is True)
+            / len(judge_retry_tracked) * 100,
+            2,
+        ) if judge_retry_tracked else None,
         'scored_count': len(scores),
         'avg_score': _avg(scores),
         'median_score': _median(scores),

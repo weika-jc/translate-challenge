@@ -204,6 +204,15 @@ main {
   font-family: var(--mono);
 }
 
+.reliability-table .reliability-value { color: var(--text); }
+.reliability-table td.recovered { color: var(--good); }
+.reliability-table td.unavailable { color: var(--bad); }
+
+.badge.reliability-stage {
+  background: rgba(91, 156, 245, 0.12);
+  color: #7db2fa;
+}
+
 .outcome-win,
 .delta-positive { color: var(--good); }
 .outcome-loss,
@@ -603,6 +612,17 @@ main {
   background: rgba(139, 149, 168, 0.12);
   color: var(--text);
   white-space: nowrap;
+}
+
+.badge.attempts {
+  background: rgba(139, 149, 168, 0.12);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.badge.attempts.recovered {
+  background: rgba(62, 207, 142, 0.12);
+  color: var(--good);
 }
 
 .score-pill {

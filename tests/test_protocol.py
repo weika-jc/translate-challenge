@@ -6,6 +6,7 @@ from pathlib import Path
 
 from evaluate.prompt import build_judge_prompt
 from evaluate.protocol import (
+    canonical_language_code,
     check_language,
     check_policy,
     parse_judge_output,
@@ -17,6 +18,11 @@ from report.analyze import load_csv
 
 
 class TranslationProtocolTests(unittest.TestCase):
+    def test_dataset_language_aliases_use_product_codes(self):
+        self.assertEqual(canonical_language_code('no'), 'nb')
+        self.assertEqual(canonical_language_code('ja'), 'jp')
+        self.assertEqual(canonical_language_code('fr'), 'fr')
+
     def test_parse_translation_output(self):
         parsed = parse_translation_output('{"c":"Bonjour"}')
         self.assertTrue(parsed.valid)

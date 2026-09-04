@@ -213,6 +213,10 @@ function aggregateSummary(models) {
     const mid = Math.floor(s.length / 2);
     return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2 * 100) / 100;
   };
+  const retryTracked = models.reduce((n, m) => n + (m.summary.retry_tracked_count ?? 0), 0);
+  const firstCallSuccess = models.reduce((n, m) => n + (m.summary.first_call_success_count ?? 0), 0);
+  const firstOutputValid = models.reduce((n, m) => n + (m.summary.first_output_valid_count ?? 0), 0);
+  const totalRetries = models.reduce((n, m) => n + (m.summary.total_retries ?? 0), 0);
   return {
     count: allRecords.length,
     avg_score: avg(scores),
@@ -236,6 +240,23 @@ function aggregateSummary(models) {
       const bad = models.reduce((n, m) => n + (m.summary.call_failed_count ?? 0), 0);
       return total ? Math.round(bad / total * 10000) / 100 : null;
     })(),
+    retry_tracked_count: retryTracked,
+    first_call_success_count: firstCallSuccess,
+    first_call_success_ratio: retryTracked
+      ? Math.round(firstCallSuccess / retryTracked * 10000) / 100 : null,
+    first_output_valid_count: firstOutputValid,
+    first_output_valid_ratio: retryTracked
+      ? Math.round(firstOutputValid / retryTracked * 10000) / 100 : null,
+    first_request_success_count: firstOutputValid,
+    first_request_success_ratio: retryTracked
+      ? Math.round(firstOutputValid / retryTracked * 10000) / 100 : null,
+    total_retries: totalRetries,
+    avg_retries: retryTracked
+      ? Math.round(totalRetries / retryTracked * 100) / 100 : null,
+    retried_count: models.reduce((n, m) => n + (m.summary.retried_count ?? 0), 0),
+    recovered_by_retry_count: models.reduce(
+      (n, m) => n + (m.summary.recovered_by_retry_count ?? 0), 0,
+    ),
     language_invalid_count: models.reduce((n, m) => n + (m.summary.language_invalid_count ?? 0), 0),
     language_unknown_count: models.reduce((n, m) => n + (m.summary.language_unknown_count ?? 0), 0),
     language_checked_count: models.reduce((n, m) => n + (m.summary.language_checked_count ?? 0), 0),
@@ -289,11 +310,75 @@ function renderOverview() {
     { label: 'Judge 失败', value: fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count') },
   ];
 
+  if (s.retry_tracked_count) {
+    cards.push(
+      { label: '首次请求成功率', value: fmtPct(s.first_request_success_ratio) },
+      { label: '首次调用返回率', value: fmtPct(s.first_call_success_ratio) },
+      { label: '重试恢复', value: fmt(s.recovered_by_retry_count) },
+      { label: '平均重试', value: fmt(s.avg_retries) },
+    );
+  }
+
   document.getElementById('overview-cards').innerHTML = cards.map(c => `
     <div class="card">
       <div class="label">${c.label}</div>
       <div class="value ${c.cls || ''}">${c.value}</div>
     </div>
+  `).join('');
+}
+
+function renderReliability() {
+  const section = document.getElementById('reliability-section');
+  const models = getActiveModels();
+  const rows = [];
+  models.forEach(model => {
+    const s = model.summary;
+    if (s.retry_tracked_count) {
+      rows.push({
+        model: model.name,
+        stage: '翻译',
+        tracked: s.retry_tracked_count,
+        firstRequest: s.first_request_success_ratio,
+        firstCall: s.first_call_success_ratio,
+        retried: s.retried_count,
+        recovered: s.recovered_by_retry_count,
+        unavailable: (s.call_failed_count ?? 0) + (s.malformed_count ?? 0),
+        avgRetries: s.avg_retries,
+      });
+    }
+    if (s.judge_retry_tracked_count) {
+      rows.push({
+        model: model.name,
+        stage: 'Judge',
+        tracked: s.judge_retry_tracked_count,
+        firstRequest: s.judge_first_request_success_ratio,
+        firstCall: s.judge_first_call_success_ratio,
+        retried: s.judge_retried_count,
+        recovered: s.judge_recovered_by_retry_count,
+        unavailable: s.judge_failed_count,
+        avgRetries: s.judge_retry_tracked_count
+          ? Math.round(s.judge_total_retries / s.judge_retry_tracked_count * 100) / 100
+          : null,
+      });
+    }
+  });
+  if (!rows.length) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+  document.querySelector('#reliability-table tbody').innerHTML = rows.map(row => `
+    <tr>
+      <td><strong>${esc(row.model)}</strong></td>
+      <td><span class="badge reliability-stage">${row.stage}</span></td>
+      <td class="num">${row.tracked}</td>
+      <td class="num"><span class="reliability-value">${fmtPct(row.firstRequest)}</span></td>
+      <td class="num"><span class="reliability-value">${fmtPct(row.firstCall)}</span></td>
+      <td class="num">${row.retried}</td>
+      <td class="num recovered">${row.recovered}</td>
+      <td class="num ${row.unavailable ? 'unavailable' : ''}">${row.unavailable}</td>
+      <td class="num">${fmt(row.avgRetries)}</td>
+    </tr>
   `).join('');
 }
 
@@ -673,6 +758,17 @@ function renderRecords(data) {
     if (r.judge_success === true && r.judge_acceptable === false) issues.push('Judge 不接受');
     return issues.length ? issues.join(' / ') : '通过';
   };
+  const attemptText = r => {
+    if (r.call_attempts == null) return '—';
+    if (r.recovered_by_retry === true) return `${r.call_attempts} 次 · 恢复`;
+    return `${r.call_attempts} 次`;
+  };
+  const attemptTitle = r => {
+    if (r.call_attempts == null) return '旧结果未记录尝试次数';
+    const firstCall = r.first_call_success === true ? '已返回' : '未返回';
+    const firstOutput = r.first_output_valid === true ? '可用' : '不可用';
+    return `首次调用${firstCall}；首次结果${firstOutput}；重试 ${r.call_retries ?? 0} 次`;
+  };
   const tbody = document.getElementById('records-body');
   tbody.innerHTML = data.records.map(r => `
     <tr>
@@ -683,11 +779,12 @@ function renderRecords(data) {
       <td class="text-cell" title="${esc(r.trans)}">${esc(truncate(r.trans))}</td>
       <td><span class="score-pill ${scoreClass(r.score)}">${fmt(r.score)}</span></td>
       <td><span class="badge status">${esc(statusText(r))}</span></td>
+      <td title="${esc(attemptTitle(r))}"><span class="badge attempts${r.recovered_by_retry === true ? ' recovered' : ''}">${esc(attemptText(r))}</span></td>
       <td>${fmt(r.latency_ms, ' ms')}</td>
       <td>${fmt(r.total_tokens)}</td>
       <td>${fmtMoney(calcCost(r.input_tokens, r.output_tokens, r.total_tokens, getModelPrice(r.model)))}</td>
     </tr>
-  `).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
+  `).join('') || '<tr><td colspan="11" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
 
   const totalPages = Math.max(1, Math.ceil(data.total / data.page_size));
   document.getElementById('page-info').textContent =
@@ -720,6 +817,7 @@ function bindFilters() {
 function render() {
   renderTabs();
   renderOverview();
+  renderReliability();
   renderCompare();
   renderPairwise();
   renderCharts();
