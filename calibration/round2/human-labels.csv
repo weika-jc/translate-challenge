@@ -1,0 +1,101 @@
+candidate_id,split,dataset,src,tgt,source,reference,candidate,acceptable,worst_severity,primary_category,note
+2fe819429ae02981,dev,mtnt,fr,en,(Il existe des U moins encombrant),(Less bulky U locks exist),(There are less cumbersome U's),yes,minor,terminology,“U”未展开为 U-locks/U 型锁，英文里 “U's” 不易理解；原文本身也是省略写法
+05f79ba58e8f0cb8,dev,mtnt,ja,en,T25のキーボードが、T470sかT480sに繋げれるかわかる人いる？,Anyone know if you can fit a T25 keyboard to a T470s or T480s?,Does anyone know if a T25 keyboard can connect to a T470s or T480s?,yes,none,,
+f8afa6bcdc97f53a,dev,tatoeba,nl,no,Hij heeft geluk zo'n goede vrouw te hebben.,Han er heldig som har en så god hustru.,Han er heldig som har en så god kone.,yes,none,,
+43ee5ed40529dd35,holdout,tatoeba,it,de,Cerchiamo di aspettare e vedere come si sviluppano le cose.,"Lass uns abwarten und schauen, wie sich die Dinge entwickeln.","Lass uns abwarten und sehen, wie sich die Dinge entwickeln.",yes,none,,
+92f12d35a13fcf69,dev,mtnt,ja,en,誰かお店に直接行って確認、または電話で確認することができますか？,Is it possible for anyone to either ask in person or ring them?,"Can someone go directly to the store to check, or confirm by phone?",yes,none,,
+f0a249c454633b73,holdout,mtnt,fr,en,Deux appareils sur trois vendus par Apple sont toujours en utilisation !,Two out of three devices sold by Apple are still in use!,Two out of three devices sold by Apple are still in use!,yes,none,,
+d9b8f342ea5d121a,dev,subtitle,fr,de,"Tu te laisses manipuler par elle, Jack.","Du lässt dich von ihr manipulieren, Jack.","Du lässt dich von ihr manipulieren, Jack.",yes,none,,
+8886ce04328e64ef,dev,subtitle,da,no,- Ja.,-Jeg vet., - Ja. ,yes,none,,与原文同形，但“Ja”在挪威语中相同，属有效翻译；参考译文与原文不对应
+836abf7f646bf560,holdout,subtitle,en,no,"Dad, by the time you get back from your business trip, I'll be in South Africa.","Pappa, når du kommer tilbake fra forretningsreisen, er jeg i Sør-Afrika.","Pappa, når du kommer tilbake fra forretningsreisen, vil jeg være i Sør-Afrika.",yes,none,,
+3cd727976ee084bc,holdout,subtitle,no,it,"- Den? Nei, jo, vel...","Questo no, si, no.","- Den? No, sì, beh...",no,major,accuracy,“Den?”未翻译（应为 Questo?/Quello?），其余部分正确
+eb4ad7387bc52ac2,dev,tatoeba,nl,de,De Finnen drinken veel koffie.,Die Finnen trinken viel Kaffee.,Die Finnen trinken viel Kaffee.,yes,none,,
+d938119fcca2dfc6,holdout,subtitle,nl,da,Ik wilde niet dat er iemand gearresteerd werd.,Jeg... ville ikke have nogen arresteret.,"Jeg ville ikke have, at nogen blev arresteret.",yes,none,,
+2f1521fdeb20aaf6,dev,tatoeba,da,ja,Jeg købte en masse bøger.,本をたくさん買った。,私は本をたくさん買いました。,yes,none,,
+57ead0f34587cc1f,holdout,subtitle,nl,fr,Ja.,Oui.,Oui.,yes,none,,
+0217bfabaa5723c0,dev,subtitle,da,nl,Klo.,- Hemeltje. Haak. - Haak?,Toilet.,no,major,accuracy,丹麦语 klo 是“爪/钩”，被按德语 Klo 理解为“厕所”，词义错误
+d5e83e72950f456f,dev,tatoeba,en,it,Lock all the doors.,Chiuda a chiave tutte le porte.,Chiudi tutte le porte.,no,major,accuracy,漏译“a chiave”，Chiudi le porte 只是“关门”，丢失“上锁”这一指令要点
+a82b086813c45d61,holdout,mtnt,ja,en,ところで、平昌オリンピックに何しに行ったの〜！,"By the way, what did you go to do at the Pyeongchang Olympics!","By the way, what did you go to do at the Pyeongchang Olympics~!",yes,none,,保留了拖音符号“~”；英文“what did you go to do”略生硬，但参考译文同样如此
+05b3166d04834c6f,dev,mtnt,fr,en,Serait-ce une envoyée du Maaaaaal?,Could she be a servant of eviiiiiiiil?,Could it be a messenger from the Maaaaaal?,no,major,accuracy,核心词 Mal（邪恶）未翻译，仍是 Maaaaaal；envoyée 的阴性指代也丢失
+96b6a7b0a362d1c5,dev,subtitle,no,da,La oss ta en drink før vi går.,"Lad os tage en drink, før vi går.",Lad os tage en drink før vi går.,yes,none,,丹麦语新式标点下 før 从句前可不加逗号
+2e5de0a29309450b,dev,subtitle,en,de,You could do anything you want.,"Du könntest tun, was du willst.","Du könntest alles tun, was du willst.",yes,none,,
+5ad27cc283e43300,dev,tatoeba,de,fr,Bitte rauchen Sie nicht drinnen.,Veuillez ne pas fumer à l'intérieur.,Veuillez ne pas fumer à l'intérieur.,yes,none,,
+e89078ac91c0f8c0,holdout,subtitle,nl,da,Ik heb een lang weekend tegoed.,Jeg har en lang weekend til gode.,Jeg har en lang weekend til gode.,yes,none,,
+ba081c05f8833bba,dev,subtitle,ja,es,第３位,En tercer lugar:,Tercer lugar,yes,none,,
+fc6a424fb3000428,dev,subtitle,es,da,"- ¡Bien, sí! Auténtico. Está fuera de la ciudad, pero...","Det ligger lidt uden for byen, men...","- ¡Bien, sí! Auténtico. Está fuera de la ciudad, pero...",no,critical,accuracy,原文照抄，完全未翻译（目标语为丹麦语）
+cda26dd27cd1a7f5,dev,subtitle,da,es,"Jeg er ked af det, men det her går ikke.","Lo siento, pero esto no está funcionando.","Lo siento, pero esto no funciona.",yes,none,,
+ad4c04e3e58b81bc,holdout,mtnt,en,ja,"Sure, but the VR aspect of the game was a shining crazy diamond when it came out.",そうだな、ただVRとしての観点からみれば、これは光り輝くダイヤモンドみたいなもんだ。,もちろんですが、ゲームのVR機能はリリース当時、まさに輝かしいクレイジーダイヤモンドでした。,yes,minor,tone,原文是论坛口语，译文用敬体偏正式；“クレイジーダイヤモンド”直译保留了原文的双关
+b794a76ffc7f76e0,dev,tatoeba,no,es,Yumi er flink til å spille tennis.,Yumi es buena jugando tenis.,Yumi es buena jugando al tenis.,yes,none,,
+a030c75d5fa2b077,dev,tatoeba,it,no,Il mondo non ha bisogno di me.,Verden trenger meg ikke.,Verden trenger ikke meg.,yes,minor,fluency,“trenger ikke meg”带对比强调，中性语序是 trenger meg ikke
+1382be2c11f84cb0,dev,subtitle,en,no,How... How do we know who's won?,Hvordan vet vi hvem som vinner?,Hvordan... Hvordan vet vi hvem som har vunnet?,yes,none,,保留了原文的迟疑重复
+426ceffe4b5f6a08,dev,tatoeba,it,es,Mia sorella suona il piano ogni giorno.,Mi hermana toca el piano cada día.,Mi hermana toca el piano todos los días.,yes,none,,
+0bb93deafcaf87eb,dev,tatoeba,no,de,Tom har ikke kommet tilbake ennå.,Tom ist noch nicht zurückgekommen.,Tom ist noch nicht zurückgekommen.,yes,none,,
+79060206c91b2ac4,holdout,subtitle,da,nl,Jeg har en lang weekend til gode.,Ik heb een lang weekend tegoed.,Ik heb een lang weekend tegoed.,yes,none,,
+0c7299ef2dc54e12,dev,tatoeba,fr,de,Le centre-ville est bruyant.,Die Innenstadt ist laut.,Die Innenstadt ist laut.,yes,none,,
+74d6560865e1cb11,holdout,mtnt,ja,en,そうだな、ただVRとしての観点からみれば、これは光り輝くダイヤモンドみたいなもんだ。,"Sure, but the VR aspect of the game was a shining crazy diamond when it came out.","Yeah, but from a VR perspective, this is like a shining diamond.",yes,none,,按原文（日文）译无误；参考译文含原文没有的 of the game / when it came out
+3a5752b578e236f1,holdout,mtnt,en,fr,What do you live for?,Quel est votre but dans la vie ?,Pour quoi vis-tu ?,yes,minor,fluency,“Pour quoi vis-tu ?”语法可行但易被读成 pourquoi 的拼写错误
+d08689cba16c9a9e,holdout,tatoeba,da,es,"Det er dig hun elsker, ikke mig.","Es a ti a quien ella ama, no a mí.","Es a ti a quien ella ama, no a mí.",yes,none,,
+f0732293364845cf,holdout,subtitle,ja,it,完璧です,Tutti cosi' perfetti...,Perfetto,yes,none,,参考译文与原文不对应，Perfetto 正确
+4d97f3fe07b865b3,dev,tatoeba,de,no,Algerien ist einer unserer Partner im Mittelmeerraum.,Algerie er en av våre partnere i Middelhavsregionen.,Algerie er en av våre partnere i Middelhavsområdet.,yes,none,,
+d917c25e3d91dd7f,holdout,mtnt,en,fr,"The notion of sharing is clearly less present but by deleting progressively, it works very well, does not it?","La notion de partage est clairement moins là mais en supprimant au fur et à mesure ça passe très bien, non ?","L’idée de partager est clairement moins présente, mais en supprimant progressivement, cela fonctionne très bien, non?",yes,none,,原文本身是不通的英文，译文做了合理规整
+dc1a8fc48b8c5d96,dev,mtnt,en,ja,Is it possible for anyone to either ask in person or ring them?,誰かお店に直接行って確認、または電話で確認することができますか？,誰かが直接会って聞くか、電話で連絡することは可能ですか?,yes,none,,
+4fdec17d62adb8a8,dev,tatoeba,en,nl,Mary bites her nails.,Maria bijt op haar nagels.,Mary bijt op haar nagels.,yes,none,,人名保留 Mary 未本地化，可接受
+e034e3b5a15a06b2,dev,subtitle,no,ja,Bare hyggelig.,礼ならいいよ,素敵です。,no,major,accuracy,“Bare hyggelig”是“不用谢”，译成“素敵です（很棒）”，含义错误
+16da476e8a2bdc3e,holdout,subtitle,es,it,Jackson fue nombrado capitán del equipo de futbol. Y el tobillo de Dale está mejor.,"Jackson e' diventato capitano della squadra di calcio, la caviglia di Dale va meglio.",Jackson è stato nominato capitano della squadra di calcio. E la caviglia di Dale sta meglio.,yes,none,,
+addef5045184972a,dev,subtitle,no,nl,Ok.,Oké... oké.,Ok.,yes,none,,与原文同形，但 Ok 在荷兰语中同样成立
+e77ca209d153c6b3,holdout,subtitle,en,nl,The tree's too heavy.,De boom is te zwaar.,De boom is te zwaar.,yes,none,,
+0765ab15d7cf643c,dev,mtnt,fr,en,"Je sentais bien que le contenu pouvait être collector, je ne me doutais pas à quel point.","I knew the content would be epic, I didn't know how much.","I had a feeling the content could be collectible, I didn't realize how much.",yes,none,,
+640f699840a1b0d5,dev,mtnt,fr,en,Quel est votre but dans la vie ?,What do you live for?,What is your purpose in life?,yes,none,,
+f742dc3362ee3e1a,dev,subtitle,de,es,Wir dachten dass Byron und Ike gleichzeitig am Portal zehn ankamen.,Pensábamos que Byron y Ike llegaron al Portal 10 de forma simultánea.,Pensamos que Byron e Ike llegaron al mismo tiempo al Portal Diez.,yes,none,,
+90b8678f37ce36d1,dev,mtnt,en,fr,Two out of three devices sold by Apple are still in use!,Deux appareils sur trois vendus par Apple sont toujours en utilisation !,Deux appareils sur trois vendus par Apple sont encore utilisés !,yes,none,,
+72fb2a8121d2912d,dev,subtitle,de,it,"Setz dich, ich gehe deine Farbe mischen.","Tu sei la prossima, ragazza. Siediti, vado a prepararti il colore.","Siediti, vado a mescolare il tuo colore.",yes,none,,参考译文多出一句上文，按原文译无误
+ed30fb74de7423f0,holdout,tatoeba,da,de,Tom kunne ikke beslutte sig for om hans hund skulle hedde Cookie eller Pochi.,"Tom konnte sich nicht entscheiden, ob er seinen Hund Cookie oder Pochi nennen sollte.","Tom konnte sich nicht entscheiden, ob sein Hund Cookie oder Pochi heißen sollte.",yes,none,,
+6ddbf4d516f921c7,holdout,subtitle,it,es,"- Sono io, Mac.","- Soy yo, Mac.","- Soy yo, Mac.",yes,none,,
+adcb2a52703eb888,holdout,mtnt,fr,en,"La notion de partage est clairement moins là mais en supprimant au fur et à mesure ça passe très bien, non ?","The notion of sharing is clearly less present but by deleting progressively, it works very well, does not it?","The notion of sharing is clearly less present, but by removing it gradually, it works very well, doesn't it?",yes,none,,
+12c1090f5574b9ff,dev,subtitle,ja,nl,- そうなの　わたし、ピューターが大好きなの,Daar ben ik gek op.,"Echt waar, ik hou echt van pewter.",yes,minor,terminology,pewter 未译为荷兰语（peauter/tin）；“Echt waar”与“そうなの”的肯定语气略有偏差
+8e9e516a6961b8aa,dev,subtitle,ja,it,地球上で最後の人は 他に誰もいない,Quindi... indovina chi non e' piu' l'ultima persona sulla terra?,L'ultima persona sulla Terra è sola,yes,none,,ambiguous：原文缺上下文，参考译文与原文不对应，“è sola”是可辩护的理解
+b1b81a174c452d9c,dev,tatoeba,ja,no,もう一杯お茶をいただきませんか。,Vil du ha en kopp te til?,Kan jeg få en kopp te til?,no,major,accuracy,方向错误：原文是邀请对方再来一杯（Vil du ha…），译成第一人称请求（Kan jeg få…）
+fe01f701ad120f57,dev,tatoeba,de,da,Maria kam zuletzt.,Maria kom sidst.,Maria kom sidste gang.,no,major,accuracy,“zuletzt（最后到）”被译成“sidste gang（上一次）”，含义错误
+09d3722afa2c9435,dev,tatoeba,es,ja,Hacía mucho frío ayer por la mañana.,昨日の朝はとても寒かった。,昨日の朝はとても寒かったです。,yes,none,,
+3a0def2db76a8942,dev,tatoeba,en,fr,There is a flower on the table.,Il y a une fleur sur la table.,Il y a une fleur sur la table.,yes,none,,
+90cd30a1614008cd,holdout,subtitle,da,es,Og jeg er dy gtig med hænderne.,Y soy muy bueno con mis manos.,Y soy torpe con las manos.,no,critical,accuracy,含义相反：dygtig（手巧）被译成 torpe（笨手笨脚）
+3649c1d9a26adeb0,dev,subtitle,da,it,- Gør du det?,Lo apprezzi? Davvero? Si'.,Fai sul serio?,yes,minor,accuracy,ambiguous：原文缺上下文；“Gør du det?”≈“你会吗/是吗”，译成“你说真的？”属改写
+516807942eedab99,dev,mtnt,en,ja,Let me know what you think!,どう思うか教えてくれよ！,あなたの意見を聞かせてください!,yes,minor,tone,原文是随意口语，译文用敬体“聞かせてください”偏正式，并显化了“あなたの”
+c71b2eeabcf097f2,dev,tatoeba,de,da,"Weißt du was, Tom? Du hast recht!","Ved du hvad, Tom, du har ret!","Ved du hvad, Tom? Du har ret!",yes,none,,
+6777fd263fbb208c,holdout,mtnt,en,ja,"By the way, what did you go to do at the Pyeongchang Olympics!",ところで、平昌オリンピックに何しに行ったの〜！,ところで、平昌オリンピックで何をしに行ったんですか!,yes,minor,tone,原文是论坛随意口语，译文“〜んですか”偏敬体（参考为“行ったの〜！”）
+6c245cc8d7f4cb6b,dev,tatoeba,nl,fr,Ik zou geen voedsel moeten eten dat suiker bevat.,Je ne devrais pas manger de nourriture contenant du sucre.,Je ne devrais pas manger de nourriture contenant du sucre.,yes,none,,
+4fd0ad9765e9a1a9,dev,tatoeba,it,da,Auckland è una città della Nuova Zelanda.,Auckland er en by i New Zealand.,Auckland er en by i New Zealand.,yes,none,,
+767230b32d887e2b,dev,tatoeba,es,da,El agua está compuesta de hidrógeno y oxígeno.,Vand består af brint og ilt.,Vandet består af brint og ilt.,yes,minor,fluency,泛指应用无定形 Vand，Vandet 指特定的水
+12e32bde0c58ba3a,dev,mtnt,en,fr,I'm hesitating to pass the VTC licence to combine it to my translation work while waiting to be skilled enough in Web Development for a reconversion.,J'hésite à passer la licence VTC pour cumuler avec mon activité de traducteur en attendant d'être assez calé en développement Web pour une reconversion.,J'hésite à passer la licence VTC pour la combiner avec mon travail de traduction en attendant d'être suffisamment compétent en développement web pour une reconversion.,yes,none,,
+411076add0eaa4c1,dev,subtitle,en,nl,Didn't it bother you that he was more popular?,Vond u het erg dat hij populairder was?,Vond je het niet erg dat hij populairder was?,yes,none,,正确保留了否定；参考译文用敬称 u，原文无从区分，je 可接受
+6dabc1419dd0bd57,dev,tatoeba,nl,fr,Ik was verwonderd wanneer ik hoorde wat er gebeurd was.,J'ai été étonné d'entendre ce qui s'était passé.,J'étais étonné quand j'ai entendu ce qui s'était passé.,yes,none,,
+8aff94607feadca1,dev,mtnt,fr,en,"Aaaaaaaah.... 8 ans après, je viens de percuter....  :o 'tain je me disais bien que je passais à côté d'un truc vu les upvotes.","Aaaaaaaah.... 8 years later, I've just realized.... :o damn I had the feeling that I was missing something considering the upvotes.","Aaaaaaaah.... 8 years later, it just hit me.... :o Damn, I knew I was missing something given the upvotes.",yes,none,,拖长音、:o 与 damn 的语气均到位
+404e65c6f6fb8a44,dev,subtitle,de,es,Hans hat mich betrunken in den Pool geworfen.,Hans estaba borracho y me tiró a la piscina.,Hans me emborrachó y me tiró a la piscina.,no,major,accuracy,“betrunken”指 Hans 自己喝醉，译成“把我灌醉”，误译并增加了动作
+f5995db43b5914fa,dev,tatoeba,ja,no,いいかげんにして。,Skjerp deg!,Nå holder du opp.,yes,none,,
+e96cca07cf0d821f,holdout,tatoeba,ja,no,急いで！,Fort deg!,Først!,no,critical,accuracy,“Først!（第一）”与原意“快点！”无关，疑似把 Fort deg 写错，基本不可用
+41408c7ac45a8215,holdout,tatoeba,fr,it,Vous aviez les dents cariées.,Voi avevate i denti cariati.,Avevi le carie.,yes,minor,tone,Vous（敬称/复数）变成 tu（Avevi），称呼层级丢失；“le carie”属改写但含义相近
+d1de084872f5869b,dev,tatoeba,ja,it,機会のあり次第彼にお話ししよう。,"Appena abbiamo un'opportunità, andiamo a parlargli.",Glieli racconterò alla prima occasione.,no,major,accuracy,「話ししよう」的“我们一起去说”被译成第一人称将来时，且“Glieli”凭空多出复数宾语
+3e9300960c673594,holdout,tatoeba,da,nl,Han lovede mig at komme tidligt.,Hij beloofde me om vroeg te komen.,Hij beloofde me vroeg te komen.,yes,none,,
+659f7f7d8907f26f,dev,mtnt,fr,en,Dans le doute bidouille le doc.,"If in doubt, fiddle with the doc.","When in doubt, tinker with the doc.",yes,none,,
+9185411fc3ad79d9,dev,subtitle,da,de,"Jeg tror ikke, det her er enden.","Ich glaube nicht, dass das das Ende ist.","Ich glaube nicht, dass dies das Ende ist.",yes,none,,
+81ac2bec71fa1bf1,dev,tatoeba,en,no,We accept all major credit cards.,Vi tar alle større kredittkort.,We accept all major credit cards.,no,critical,accuracy,原文照抄，完全未翻译（目标语为挪威语）
+75601ccab627c176,dev,tatoeba,es,it,Mi hermana toca el piano cada día.,Mia sorella suona il piano ogni giorno.,Mia sorella suona il pianoforte ogni giorno.,yes,none,,
+d8cc3ea0a7a561fd,dev,subtitle,it,da,Quindi credi che sia a lui che Zhang passa la roba?,"Tror du, han er Zhangs bagmand?","Så du mener, at det er ham og Zhang, der sender tingene videre?",no,major,accuracy,人物关系错误：原文是“Zhang 把东西交给他”，译成“他和 Zhang 一起转交”
+fcf20dfe6884dd2f,dev,tatoeba,fr,nl,La vie c'est ce qui se passe pendant que tu es occupée à faire d'autres plans.,Leven is wat je gebeurt terwijl je andere plannen maakt.,Het leven is wat er gebeurt terwijl je druk bezig bent met andere plannen.,yes,none,,
+bc29584b6abd2072,holdout,subtitle,it,no,Praticamente sono sposata con un Buzz Lightyear sexy.,Jeg er gift med en sexy Buzz Lightyear.,Praktisk talt er jeg gift med en sexy Buzz Lightyear.,yes,none,,
+3fc285da31374200,dev,mtnt,ja,en,彼はでもちょっと先に行っても良いと思います。,It’s okay to be ahead of the curve tho.,But I think he can go a little ahead.,yes,none,,按原文（含噪声的日文）直译无误，参考译文是意译
+88f81810bba1edcd,dev,tatoeba,fr,nl,La Chine est beaucoup plus grande que le Japon.,China is veel groter dan Japan.,China is veel groter dan Japan.,yes,none,,
+e0a82d8deb109486,dev,subtitle,fr,da,Parfait.,Det her er godt.,Perfekt.,yes,none,,参考译文与原文不对应，Perfekt 正确
+1298ce0c63fd46d6,dev,subtitle,it,es,Scommetto che alcune persone sono fuggite in Tasmania.,Apuesto a que algunos huirían a Tasmania.,Apuesto que algunas personas se escaparon a Tasmania.,yes,minor,fluency,“Apuesto que”缺 a（应为 apuesto a que），属 queísmo
+9831a8cbbe9f5bab,dev,tatoeba,no,de,"Epler er vanligvis grønne, gule eller røde.","Äpfel sind gewöhnlich grün, gelb oder rot.","Äpfel sind normalerweise grün, gelb oder rot.",yes,none,,
+02c20bb790a54f9a,dev,tatoeba,nl,ja,Betty is danslerares.,ベティはダンスの先生である。,Betty is danslerares.,no,critical,accuracy,原文照抄，完全未翻译（目标语为日语）
+08e4b2f010e7d9db,dev,subtitle,fr,it,"Seigneur, ça serait tellement sympa.","Oh Dio, sarebbe fantastico!","Signore, sarebbe così gentile.",no,major,accuracy,“Seigneur”是感叹（天啊）被当成称呼 Signore，sympa 译成 gentile（指人善良），整句语义偏离
+ac677a33785c5f55,dev,mtnt,ja,en,"> あなたが何かを忘れてしまったとき,思い出すために何をしますか？",>What do you do to jog your memory back when you forgot something?,"When you forget something, what do you do to remember it?",yes,minor,preservation,未保留原文的引用标记“>”
+43fecd47cacafff1,dev,subtitle,es,ja,Yo también.,私も,私も。,yes,none,,
+43f935ca115d290a,holdout,tatoeba,it,es,I pesci sono animali a sangue freddo.,Los peces son animales de sangre fría.,Los peces son animales de sangre fría.,yes,none,,
+aef9bacfbccd1c66,holdout,mtnt,en,fr,Despite all this I managed to get around it thanks to the power of the brain.,"Après malgré ça, j'ai réussi à contourner ce problème grâce aux pouvoirs du cerveau.","Malgré tout cela, j'ai réussi à le contourner grâce à la puissance du cerveau.",yes,none,,
+39dce43fc9da0989,dev,tatoeba,fr,ja,Je me rappelle l'événement aussi clairement que s'il avait eu lieu hier.,この事件の事はまるで昨日の事のようにはっきり覚えています。,まるで昨日起こったことのように、そのイベントをはっきりと覚えています。,yes,minor,accuracy,l’événement 译成“イベント（活动）”，原意是“事件/出来事”，词义偏差
+34cf6be7721ba7a8,dev,subtitle,it,da,"No, non lo fara'.","Nej, du gør ikke.","Nej, han vil ikke.",yes,none,,参考译文用第二人称，按原文第三人称 han 正确
+c57bc43493c51ff8,holdout,tatoeba,it,de,Sei una sospettata.,Du bist eine Verdächtige.,Sie sind ein Verdächtiger.,no,major,accuracy,阴性 sospettata 译成阳性 Verdächtiger，且非正式 sei 变敬语 Sie，性别与称呼双错
+8bbebde364baa4d8,dev,mtnt,en,ja,Anyone know if you can fit a T25 keyboard to a T470s or T480s?,T25のキーボードが、T470sかT480sに繋げれるかわかる人いる？,T25キーボードをT470sまたはT480sに装着できるかどうか知っている人はいますか?,yes,minor,tone,原文是论坛随意提问，译文敬体偏正式（参考为“〜わかる人いる？”）
+caebd2ee18cb1702,holdout,subtitle,en,fr,Hi.,Salut.,"Salut.""",yes,minor,preservation,"句末残留一个多余引号（Salut.""）"

@@ -5,19 +5,13 @@ import os
 import statistics
 from pathlib import Path
 
+from evaluate.protocol import parse_translation_output
+
 
 def validate_trans_json(text: str | None) -> tuple[bool, str]:
     """解析翻译结果 JSON；格式正确且含 \"c\" 字段视为有效。"""
-    if not text or not str(text).strip():
-        return False, ''
-    raw = str(text).strip()
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return False, raw
-    if not isinstance(data, dict) or 'c' not in data:
-        return False, raw
-    return True, str(data['c'])
+    parsed = parse_translation_output(text)
+    return parsed.valid, parsed.text
 
 
 def parse_trans(text: str | None) -> str:
@@ -38,6 +32,26 @@ def _is_empty(value) -> bool:
     return value is None or str(value).strip() == ''
 
 
+def _bool(value) -> bool | None:
+    if value is None or str(value).strip() == '':
+        return None
+    normalized = str(value).strip().lower()
+    if normalized in ('true', '1', 'yes'):
+        return True
+    if normalized in ('false', '0', 'no'):
+        return False
+    return None
+
+
+def _json(value, default):
+    if _is_empty(value):
+        return default
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return default
+
+
 def is_call_failed(raw_trans, raw_latency) -> bool:
     """模型输出或延迟为空视为调用失败。"""
     return _is_empty(raw_trans) or _is_empty(raw_latency)
@@ -47,11 +61,21 @@ def load_csv(path: str) -> list[dict]:
     records = []
     with open(path, encoding='utf-8', newline='') as f:
         for row in csv.DictReader(f):
-            score = _num(row.get('score'), int)
-            raw_trans = row.get('trans')
+            score = _num(row.get('translation_score') or row.get('score'), int)
             raw_latency = row.get('latency_ms')
-            trans_valid, trans = validate_trans_json(raw_trans)
-            call_failed = is_call_failed(raw_trans, raw_latency)
+            is_new_protocol = 'trans_raw' in row
+            if is_new_protocol:
+                raw_trans = row.get('trans_raw')
+                trans = row.get('trans', '')
+                trans_valid = _bool(row.get('format_valid'))
+                call_success = _bool(row.get('call_success'))
+                call_failed = call_success is False
+            else:
+                raw_trans = row.get('trans')
+                trans_valid, trans = validate_trans_json(raw_trans)
+                call_failed = is_call_failed(raw_trans, raw_latency)
+                call_success = not call_failed
+            language_check = _json(row.get('language_check'), {})
             records.append({
                 'dataset': row.get('dataset', ''),
                 'src': row.get('src', ''),
@@ -62,11 +86,26 @@ def load_csv(path: str) -> list[dict]:
                 'trans': trans,
                 'trans_valid': trans_valid,
                 'call_failed': call_failed,
+                'call_success': call_success,
+                'call_error': row.get('call_error', ''),
+                'format_error': row.get('format_error', ''),
+                'language_valid': _bool(row.get('language_valid')),
+                'language_check': language_check,
+                'language_attempted': bool(language_check),
+                'policy_pass': _bool(row.get('policy_pass')),
+                'policy_violations': _json(row.get('policy_violations'), []),
+                'policy_warnings': _json(row.get('policy_warnings'), []),
+                'judge_success': _bool(row.get('judge_success')),
+                'judge_acceptable': _bool(row.get('judge_acceptable')),
+                'judge_error': row.get('judge_error', ''),
+                'judge_raw': row.get('judge_raw', ''),
+                'judge_errors': _json(row.get('judge_errors'), []),
                 'score': score,
                 'input_tokens': _num(row.get('input_tokens'), int),
                 'output_tokens': _num(row.get('output_tokens'), int),
                 'total_tokens': _num(row.get('total_tokens'), int),
                 'latency_ms': _num(row.get('latency_ms'), float),
+                'judge_latency_ms': _num(row.get('judge_latency_ms'), float),
             })
     return records
 
@@ -156,19 +195,46 @@ def summarize(records: list[dict]) -> dict:
     input_tokens = [r['input_tokens'] for r in records if r['input_tokens'] is not None]
     output_tokens = [r['output_tokens'] for r in records if r['output_tokens'] is not None]
     total_tokens = [r['total_tokens'] for r in records if r['total_tokens'] is not None]
-    malformed_count = sum(1 for r in records if not r['trans_valid'])
-    valid_count = len(records) - malformed_count
+    malformed_count = sum(1 for r in records if r['trans_valid'] is False)
+    valid_count = sum(1 for r in records if r['trans_valid'] is True)
     call_failed_count = sum(1 for r in records if r['call_failed'])
     call_success_count = len(records) - call_failed_count
+    language_invalid_count = sum(1 for r in records if r['language_valid'] is False)
+    language_unknown_count = sum(
+        1 for r in records if r['language_attempted'] and r['language_valid'] is None
+    )
+    language_checked_count = sum(1 for r in records if r['language_attempted'])
+    policy_failed_count = sum(1 for r in records if r['policy_pass'] is False)
+    policy_warning_count = sum(len(r['policy_warnings']) for r in records)
+    policy_checked_count = sum(1 for r in records if r['policy_pass'] is not None)
+    judge_failed_count = sum(1 for r in records if r['judge_success'] is False)
+    judge_attempted_count = sum(1 for r in records if r['judge_success'] is not None)
 
     return {
         'count': len(records),
         'valid_count': valid_count,
         'malformed_count': malformed_count,
-        'malformed_ratio': round(malformed_count / len(records) * 100, 2) if records else None,
+        'malformed_ratio': round(malformed_count / call_success_count * 100, 2) if call_success_count else None,
         'call_failed_count': call_failed_count,
         'call_success_count': call_success_count,
         'call_failure_ratio': round(call_failed_count / len(records) * 100, 2) if records else None,
+        'language_invalid_count': language_invalid_count,
+        'language_unknown_count': language_unknown_count,
+        'language_checked_count': language_checked_count,
+        'language_invalid_ratio': round(
+            language_invalid_count / language_checked_count * 100, 2,
+        ) if language_checked_count else None,
+        'policy_failed_count': policy_failed_count,
+        'policy_checked_count': policy_checked_count,
+        'policy_failure_ratio': round(
+            policy_failed_count / policy_checked_count * 100, 2,
+        ) if policy_checked_count else None,
+        'policy_warning_count': policy_warning_count,
+        'judge_failed_count': judge_failed_count,
+        'judge_attempted_count': judge_attempted_count,
+        'judge_failure_ratio': round(
+            judge_failed_count / judge_attempted_count * 100, 2,
+        ) if judge_attempted_count else None,
         'scored_count': len(scores),
         'avg_score': _avg(scores),
         'median_score': _median(scores),

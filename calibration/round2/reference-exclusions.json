@@ -1,0 +1,30 @@
+[
+  {
+    "candidate_id": "0217bfabaa5723c0",
+    "reason": "参考译文混入额外对白，与单词级原文不对应"
+  },
+  {
+    "candidate_id": "e0a82d8deb109486",
+    "reason": "参考译文与原文不对应，候选按原文翻译正确"
+  },
+  {
+    "candidate_id": "72fb2a8121d2912d",
+    "reason": "参考译文多出原文不存在的上文"
+  },
+  {
+    "candidate_id": "34cf6be7721ba7a8",
+    "reason": "参考译文将原文第三人称改成第二人称"
+  },
+  {
+    "candidate_id": "3fc285da31374200",
+    "reason": "参考译文为偏离原文形式的意译，不适合校准候选直译"
+  },
+  {
+    "candidate_id": "74d6560865e1cb11",
+    "reason": "参考译文加入原文不存在的 of the game / when it came out"
+  },
+  {
+    "candidate_id": "f0732293364845cf",
+    "reason": "参考译文与原文不对应，候选按原文翻译正确"
+  }
+]

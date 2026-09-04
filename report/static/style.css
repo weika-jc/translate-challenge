@@ -273,6 +273,12 @@ main {
   color: var(--accent);
 }
 
+.badge.status {
+  background: rgba(139, 149, 168, 0.12);
+  color: var(--text);
+  white-space: nowrap;
+}
+
 .score-pill {
   font-family: var(--mono);
   font-weight: 600;

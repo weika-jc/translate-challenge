@@ -59,6 +59,23 @@ function fmtCallFailed(summary) {
   return ratio != null ? `${n} (${ratio}%)` : String(n);
 }
 
+function fmtIssue(summary, countKey, ratioKey, checkedKey) {
+  if (!summary[checkedKey]) return '—';
+  const count = summary[countKey] ?? 0;
+  const ratio = summary[ratioKey];
+  return ratio != null ? `${count} (${ratio}%)` : String(count);
+}
+
+function fmtLanguage(summary) {
+  if (!summary.language_checked_count) return '—';
+  const invalid = fmtIssue(
+    summary, 'language_invalid_count', 'language_invalid_ratio', 'language_checked_count',
+  );
+  return summary.language_unknown_count
+    ? `${invalid} · 未判 ${summary.language_unknown_count}`
+    : invalid;
+}
+
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s ?? '';
@@ -204,7 +221,7 @@ function aggregateSummary(models) {
     malformed_count: models.reduce((n, m) => n + (m.summary.malformed_count ?? 0), 0),
     valid_count: models.reduce((n, m) => n + (m.summary.valid_count ?? 0), 0),
     malformed_ratio: (() => {
-      const total = models.reduce((n, m) => n + (m.summary.count ?? 0), 0);
+      const total = models.reduce((n, m) => n + (m.summary.call_success_count ?? 0), 0);
       const bad = models.reduce((n, m) => n + (m.summary.malformed_count ?? 0), 0);
       return total ? Math.round(bad / total * 10000) / 100 : null;
     })(),
@@ -212,6 +229,28 @@ function aggregateSummary(models) {
     call_failure_ratio: (() => {
       const total = models.reduce((n, m) => n + (m.summary.count ?? 0), 0);
       const bad = models.reduce((n, m) => n + (m.summary.call_failed_count ?? 0), 0);
+      return total ? Math.round(bad / total * 10000) / 100 : null;
+    })(),
+    language_invalid_count: models.reduce((n, m) => n + (m.summary.language_invalid_count ?? 0), 0),
+    language_unknown_count: models.reduce((n, m) => n + (m.summary.language_unknown_count ?? 0), 0),
+    language_checked_count: models.reduce((n, m) => n + (m.summary.language_checked_count ?? 0), 0),
+    language_invalid_ratio: (() => {
+      const total = models.reduce((n, m) => n + (m.summary.language_checked_count ?? 0), 0);
+      const bad = models.reduce((n, m) => n + (m.summary.language_invalid_count ?? 0), 0);
+      return total ? Math.round(bad / total * 10000) / 100 : null;
+    })(),
+    policy_failed_count: models.reduce((n, m) => n + (m.summary.policy_failed_count ?? 0), 0),
+    policy_checked_count: models.reduce((n, m) => n + (m.summary.policy_checked_count ?? 0), 0),
+    policy_failure_ratio: (() => {
+      const total = models.reduce((n, m) => n + (m.summary.policy_checked_count ?? 0), 0);
+      const bad = models.reduce((n, m) => n + (m.summary.policy_failed_count ?? 0), 0);
+      return total ? Math.round(bad / total * 10000) / 100 : null;
+    })(),
+    judge_failed_count: models.reduce((n, m) => n + (m.summary.judge_failed_count ?? 0), 0),
+    judge_attempted_count: models.reduce((n, m) => n + (m.summary.judge_attempted_count ?? 0), 0),
+    judge_failure_ratio: (() => {
+      const total = models.reduce((n, m) => n + (m.summary.judge_attempted_count ?? 0), 0);
+      const bad = models.reduce((n, m) => n + (m.summary.judge_failed_count ?? 0), 0);
       return total ? Math.round(bad / total * 10000) / 100 : null;
     })(),
   };
@@ -240,6 +279,9 @@ function renderOverview() {
     { label: '样本数', value: fmt(s.count) },
     { label: 'Malformed', value: fmtMalformed(s) },
     { label: '调用失败', value: fmtCallFailed(s) },
+    { label: '语言错误', value: fmtLanguage(s) },
+    { label: '规则失败', value: fmtIssue(s, 'policy_failed_count', 'policy_failure_ratio', 'policy_checked_count') },
+    { label: 'Judge 失败', value: fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count') },
   ];
 
   document.getElementById('overview-cards').innerHTML = cards.map(c => `
@@ -274,6 +316,9 @@ function renderCompare() {
       <td class="num">${fmtPct(s.low_score_ratio)}</td>
       <td class="num">${fmtMalformed(s)}</td>
       <td class="num">${fmtCallFailed(s)}</td>
+      <td class="num">${fmtLanguage(s)}</td>
+      <td class="num">${fmtIssue(s, 'policy_failed_count', 'policy_failure_ratio', 'policy_checked_count')}</td>
+      <td class="num">${fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count')}</td>
       <td class="num">${fmtMoney(totalCost)}</td>
     </tr>`;
   }).join('');
@@ -457,6 +502,19 @@ async function loadRecords() {
 }
 
 function renderRecords(data) {
+  const statusText = r => {
+    if (r.call_success === false) return '调用失败';
+    if (r.trans_valid === false) return '格式错误';
+    if (r.judge_success == null && r.policy_pass == null && r.language_valid == null) return '旧协议';
+    const issues = [];
+    if (r.language_valid === false) issues.push('语言错误');
+    if (r.language_valid == null) issues.push('语言未判');
+    if (r.policy_pass === false) issues.push('规则失败');
+    if (r.policy_warnings?.length) issues.push('规则提醒');
+    if (r.judge_success === false) issues.push('Judge 失败');
+    if (r.judge_success === true && r.judge_acceptable === false) issues.push('Judge 不接受');
+    return issues.length ? issues.join(' / ') : '通过';
+  };
   const tbody = document.getElementById('records-body');
   tbody.innerHTML = data.records.map(r => `
     <tr>
@@ -466,11 +524,12 @@ function renderRecords(data) {
       <td class="text-cell" title="${esc(r.ref)}">${esc(truncate(r.ref))}</td>
       <td class="text-cell" title="${esc(r.trans)}">${esc(truncate(r.trans))}</td>
       <td><span class="score-pill ${scoreClass(r.score)}">${fmt(r.score)}</span></td>
+      <td><span class="badge status">${esc(statusText(r))}</span></td>
       <td>${fmt(r.latency_ms, ' ms')}</td>
       <td>${fmt(r.total_tokens)}</td>
       <td>${fmtMoney(calcCost(r.input_tokens, r.output_tokens, r.total_tokens, getModelPrice(r.model)))}</td>
     </tr>
-  `).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
+  `).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
 
   const totalPages = Math.max(1, Math.ceil(data.total / data.page_size));
   document.getElementById('page-info').textContent =

@@ -1,0 +1,51 @@
+candidate_id,split,dataset,src,tgt,source,reference,candidate,acceptable,worst_severity,primary_category,note
+fb4d84f57c1f7386,dev,tatoeba,de,it,"Wisst ihr, Tom ist intelligenter als ihr.","Tom è più intelligente di voi, sapete.","Sapete, Tom è più intelligente di voi.",yes,none,,
+590996d614dad66b,holdout,tatoeba,es,da,Nos reunimos aquí una vez por semana.,Vi mødes her en gang om ugen.,Vi mødes her en gang om ugen.,yes,none,,
+551fe64d1b142475,dev,tatoeba,es,nl,Es capaz de enseñar francés.,Hij kan Frans onderwijzen.,Kan Frans onderwijzen.,no,major,fluency,缺主语，荷兰语中不成句（应为 Hij kan Frans onderwijzen）
+6c4b9d82281349e3,holdout,mtnt,ja,en,どう思うか教えてくれよ！,Let me know what you think!,Tell me what you think!,yes,none,,
+615de8360b232dc1,dev,subtitle,no,es,- Du lot pappa komme hjem igjen!,¡Dejaste que papá volviera a casa!,¡Du lote papá vuelve a casa de nuevo!,no,critical,accuracy,混入未翻译的挪威语“Du lote”，句子不成立，“你让爸爸回家”的使役关系丢失
+9df98879d55bf1b1,dev,subtitle,de,es,Was hat sie dir gesagt?,¿Qué te dijo?,¿Qué te dijo ella?,yes,none,,
+fcb81bdb06d5f8d2,dev,mtnt,fr,en,"Après malgré ça, j'ai réussi à contourner ce problème grâce aux pouvoirs du cerveau.",Despite all this I managed to get around it thanks to the power of the brain.,"After all that, I managed to work around this problem thanks to the power of my mind.",yes,minor,accuracy,“malgré ça”的让步关系被弱化成“After all that”，cerveau 译为 my mind 略有增译
+d9c2e65af27777a9,dev,tatoeba,nl,es,Mijn zus houdt van meloenen en ik ook.,"A mi hermana le gustan los melones, y a mí también.",Mi hermana ama los melones y yo también.,yes,minor,fluency,“ama los melones”不自然，西语一般用 le gustan / le encantan
+cf4123ee1a5da479,holdout,subtitle,da,es,Vi har travlt.,"Ves, es que estamos ocupados.",Estamos ocupados.,yes,none,,参考译文有字幕语境的添加成分，译文照原文更准确
+83cf0e51b16d903e,dev,mtnt,en,ja,My sweet Anzu…,我が愛しのあんずちゃん……,My sweet Anzu…,no,critical,accuracy,完全未翻译，输出仍为英文原文（目标语为日语）
+ee27e1fd91a13bfb,dev,subtitle,ja,it,これが俺でこっちがお前 いや これがお前でこれが俺,Questo sono io e questo sei tu. Cioè tu sei questo e io sono questo.,"Questo sono io e questo sei tu No aspetta, questo sei tu e questo sono io",yes,minor,fluency,“sei tu No aspetta”缺句末标点，另增译了“aspetta”
+ad8525b49dcb1741,dev,tatoeba,ja,es,そんなことは絶対に不可能です。,Es absolutamente imposible.,Eso es absolutamente imposible.,yes,none,,
+33a3f52aca3c9944,dev,subtitle,de,it,Seine Eltern verloren ihr einziges Kind um 3: 07Uhr heute morgen.,I suoi genitori hanno perso il loro unico figlio alle 3:07 di questa mattina.,I suoi genitori hanno perso il loro unico figlio alle 3:07 questa mattina.,yes,minor,fluency,“alle 3:07 questa mattina”缺 di，略不自然
+7cab222b88bfda16,dev,tatoeba,es,it,Vení conmigo a la oficina así te explico.,Vieni da me in ufficio così ti spiego.,Vieni con me in ufficio così te lo spiego.,yes,none,,
+d758046afa4ce2f8,dev,tatoeba,nl,no,Het klimaat is aangenaam.,Klimaet er behagelig.,Klimaet er behageligt.,yes,minor,fluency,“behageligt”是丹麦语形式，挪威语 -ig 结尾形容词中性不加 -t，应为 behagelig
+850d07aac6a5eeb8,dev,tatoeba,fr,it,La chatte n'a pas l'air heureuse de nous voir.,La gatta non sembra felice di vederci.,Il gatto non sembra felice di vederci.,yes,minor,accuracy,“la chatte”是雌猫，译成 il gatto 丢失性别信息
+67df796daaa66a88,holdout,subtitle,en,da,'Cause he is too damn clean.,For han er alt for ren.,Fordi han er for sindssygt ren.,yes,minor,fluency,“for sindssygt ren”程度副词叠加略生硬，丹麦语更自然是 alt for ren / sindssygt ren
+b43421d7003e30c7,dev,mtnt,en,fr,(Less bulky U locks exist),(Il existe des U moins encombrant),(Des antivols en U moins encombrants existent),yes,none,,术语 antivols en U 正确
+157b95d544a0cb26,holdout,mtnt,en,ja,N-o w-a-y!,ちーがーうーだーろー！,ウソだろ!,yes,minor,tone,未体现原文逐字拉长（N-o w-a-y）的强调形式
+1633a246f11a6268,holdout,subtitle,es,de,No es que crea que es Ud. un agente alemán.,"Nicht, weil ich Sie für eine deutsche Agentin hielt.","Nicht dass ich glaube, dass Sie ein deutscher Agent sind.",yes,minor,fluency,“Nicht dass”后缺逗号；敬语 Sie 与阳性 Agent 均正确
+1a56af3d35e52ce7,dev,subtitle,es,nl,"Ya era difícil hacer negocios con el baboso del viejo general, pero Ban Sung es todavía peor.","Die vorige generaal was al een vreselijke viespeuk, maar Ban Sung is erger.","Het was al moeilijk zaken doen met die slijmerige oude generaal, maar Ban Sung is nog erger.",yes,none,,保留了 slijmerige 这一贬称，语气到位
+6795741d64e22974,dev,mtnt,en,ja,95% of Tanks in Mythic Dungeon Invitational are Blood DKs,ミシック・ダンジョン・インビテーショナルに出てくるタンクの９５％はブラッドDK。,神話ダンジョン招待大会のタンクの95%がブラッドDKです,yes,minor,terminology,赛事专名被意译为“神話ダンジョン招待大会”，与官方译名（ミシック・ダンジョン・インビテーショナル）不符
+244d5ee0bbebb4c5,dev,mtnt,en,fr,Could she be a servant of eviiiiiiiil?,Serait-ce une envoyée du Maaaaaal?,Pourrait-elle être une servante du malllllll?,yes,none,,拖长音 malllllll 得到保留
+d71059abe718590d,holdout,subtitle,nl,de,- Anderhalf.,-Anderthalb.,Anderhalf.,no,critical,accuracy,未翻译，仍是荷兰语 Anderhalf（德语应为 Anderthalb），另丢失对白破折号
+1dce9e4a7d508d6c,holdout,mtnt,ja,en,我が愛しのあんずちゃん……,My sweet Anzu…,My beloved Anzu...,yes,none,,
+4b9c8927cb43ef79,dev,subtitle,en,ja,He probably didn't sleep. -Yesterday? -Yesterday.,（ありさ） 多分 寝てないんだね 昨日,彼はおそらく寝ていなかったのだろう。-昨日?-昨日。,yes,minor,fluency,字幕语体偏书面生硬（“彼は…のだろう”），且半角问号与全角句号混用
+a6ef4b9966fd1b3d,dev,tatoeba,ja,de,電話してくれればよかったのに。,Du hättest mich anrufen sollen!,Du hättest mich anrufen sollen.,yes,none,,
+675ca149bf4744f0,dev,mtnt,en,ja,>What do you do to jog your memory back when you forgot something?,"> あなたが何かを忘れてしまったとき,思い出すために何をしますか？",何かを忘れてしまったときに、記憶を呼び戻すためにどうしていますか？,yes,minor,preservation,未保留原文的引用标记“>”
+32bd7856cdb1e348,holdout,subtitle,ja,de,リストに入ってるんだ、ジュリエット,"Sie stehen auf der Liste, Juliet.","Ich bin auf der Liste, Juliet",no,major,accuracy,主语理解成“我”，参考与对白语境指向“您在名单上”，指代人物不同（原文省略主语，确有歧义）
+f93ef3340b17e316,dev,mtnt,ja,en,ちーがーうーだーろー！,N-o w-a-y!,That's not it!,yes,minor,tone,未体现原文拖长音的夸张、戏谑语气
+a32b9e4fba156491,dev,mtnt,en,fr,"Aaaaaaaah.... 8 years later, I've just realized.... :o damn I had the feeling that I was missing something considering the upvotes.","Aaaaaaaah.... 8 ans après, je viens de percuter....  :o 'tain je me disais bien que je passais à côté d'un truc vu les upvotes.","Aaaaaaaah.... 8 ans plus tard, je viens de réaliser.... :o zut j'avais le pressentiment que je manquais quelque chose vu les votes positifs.",no,minor,fluency,“je manquais quelque chose”是英式说法（应为 il me manquait…），pressentiment 与 feeling 不符，zut 语气偏弱；小问题叠加需改写
+e3ed10620ef58fbf,dev,tatoeba,nl,no,De hoofdstad van Japan is Tokio.,Hovedstaden i Japan er Tokyo.,De hoofdstad van Japan is Tokio.,no,critical,accuracy,未翻译，输出仍是荷兰语原文（目标语为挪威语）
+96cf1d2c665205ec,holdout,mtnt,en,fr,"If in doubt, fiddle with the doc.",Dans le doute bidouille le doc.,"En cas de doute, bidouille le doc.",yes,none,,
+8bb0a0bd42d92890,dev,tatoeba,it,da,È gay.,Han er bøsse.,Det er homo.,no,major,accuracy,主语误用 det（指物），指人应为 han/hun，句子变成“那是同性恋”
+db09ef4640c9b865,holdout,tatoeba,de,nl,Ich wasche mir fast täglich die Haare.,Ik was mijn haar bijna elke dag.,Ik was mijn haar bijna dagelijks.,yes,none,,
+3d0d30f3e1b232bf,dev,subtitle,en,nl,"Genetic manipulation, obviously, but what kind?","Genetische manipulatie, maar hoe?","Genetische manipulatie, natuurlijk, maar wat voor soort?",yes,none,,
+7c0514bbb6e1893e,holdout,subtitle,ja,es,私も,Yo también.,Yo también,yes,none,,
+dbadfc814aae7b4a,dev,tatoeba,no,nl,Tom er fremdeles utenfor.,Tom is nog steeds buiten.,Tom is nog steeds buiten.,yes,none,,
+cdb02405596b21e9,dev,mtnt,en,fr,"I knew the content would be epic, I didn't know how much.","Je sentais bien que le contenu pouvait être collector, je ne me doutais pas à quel point.","Je savais que le contenu serait épique, je ne savais pas à quel point.",yes,none,,
+7678a91b2dd9ea77,dev,tatoeba,es,fr,Él tiene un hermano y dos hermanas.,Il a un frère et deux sœurs.,Il a un frère et deux sœurs,yes,minor,fluency,句末缺句号
+250be8481bac39f2,holdout,tatoeba,da,no,Jeg stod sent op i dag til morgen.,Jeg sto opp sent i dag morges.,Jeg sto sent opp i dag til morgen.,yes,minor,fluency,“i dag til morgen”是丹麦语说法（挪威语应为 i morges），“sto sent opp”语序也略别扭
+4e69c06967fe0577,dev,mtnt,fr,en,J'hésite à passer la licence VTC pour cumuler avec mon activité de traducteur en attendant d'être assez calé en développement Web pour une reconversion.,I'm hesitating to pass the VTC licence to combine it to my translation work while waiting to be skilled enough in Web Development for a reconversion.,I'm hesitant about getting my VTC license to combine with my translator work while I'm building up enough skills in web development for a career change.,yes,none,,
+d4a3c7c95a010e69,dev,subtitle,no,da,Barna har ikke sagt ja til noe.,Børnene har ikke sagt ja til noget.,Børnene har ikke sagt ja til noget.,yes,none,,
+eb781e6f68d0febf,holdout,subtitle,da,no,"Okay, venner.","Ok, folkens.","Okay, venner.",yes,none,,"与原文同形，但“Okay, venner.”在挪威语中同样成立，不算照抄"
+27453f4e050ffa2d,dev,subtitle,ja,nl,ぉ前の魂を食らつてやる,Ik ga me tegoed doen aan je ziel.,Ik zal je ziel opeten,yes,none,,原文无标点，译文不加句号可接受
+2a62062e6552c15d,holdout,tatoeba,fr,da,Il fait trop chaud.,Det er for varmt.,Det er for varmt.,yes,none,,
+41d3a9a94a03074a,dev,mtnt,en,ja,It’s okay to be ahead of the curve tho.,彼はでもちょっと先に行っても良いと思います。,先を行くのは問題ないけどね。,yes,none,,习语 ahead of the curve 处理正确，けどね 保留了 tho 的语气
+1d8598e36f3cd276,holdout,tatoeba,en,de,Shut up and kiss me.,Halt die Klappe und küss mich.,Halt die Klappe und küss mich.,yes,none,,
+ad7cd9cc8871d1ec,dev,subtitle,da,no,Jeg har kameraet i mit.,Og jeg har kameraet. Hva nå?,Jeg har kameraet i mitt.,yes,none,,原文本身不完整，逐字直译合理
+8cfcb2e0c9c3dd7b,dev,mtnt,ja,en,ミシック・ダンジョン・インビテーショナルに出てくるタンクの９５％はブラッドDK。,95% of Tanks in Mythic Dungeon Invitational are Blood DKs,95% of the tanks that appear in Mythic Dungeon Invitational are Blood DK.,yes,minor,fluency,“are Blood DK”缺复数 s，赛事名前缺 the
