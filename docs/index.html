@@ -27,9 +27,36 @@
         <div class="cards" id="overview-cards"></div>
       </section>
 
+      <section id="reliability-section" class="compare-section hidden">
+        <div class="section-heading">
+          <div>
+            <h2 class="section-title">调用可靠性</h2>
+            <p class="section-note">首次请求成功表示第一次即得到可用结果；调用返回率只看服务是否返回。最终恢复后的结果才进入质量评分。</p>
+          </div>
+        </div>
+        <div class="panel table-scroll">
+          <table class="compare-table reliability-table" id="reliability-table">
+            <thead>
+              <tr>
+                <th>模型</th>
+                <th>阶段</th>
+                <th>已记录</th>
+                <th>首次请求成功率</th>
+                <th>首次调用返回率</th>
+                <th>发生重试</th>
+                <th>重试恢复</th>
+                <th>最终不可用</th>
+                <th>平均重试</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="compare-section" class="compare-section hidden">
         <h2 class="section-title">模型对比</h2>
-        <div class="panel">
+        <div class="panel table-scroll">
           <table class="compare-table" id="compare-table">
             <thead>
               <tr>
@@ -43,12 +70,40 @@
                 <th>&lt;50 分占比</th>
                 <th>格式错误</th>
                 <th>调用失败</th>
+                <th>语言错误</th>
+                <th>规则失败</th>
+                <th>Judge 失败</th>
                 <th>总价（估算）</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
+      </section>
+
+      <section id="pairwise-section" class="compare-section hidden">
+        <div class="section-heading">
+          <div>
+            <h2 class="section-title">配对质量比较</h2>
+            <p class="section-note" id="pairwise-method"></p>
+          </div>
+          <div class="matrix-legend" aria-label="比较结果图例">
+            <span><i class="legend-dot win"></i>纵轴更优</span>
+            <span><i class="legend-dot loss"></i>纵轴更差</span>
+            <span><i class="legend-dot uncertain"></i>差异不明确</span>
+          </div>
+        </div>
+        <div class="panel comparison-matrix-panel">
+          <div class="matrix-axis-note">
+            <span class="axis-row">纵轴模型</span>
+            <span class="axis-relation">相对</span>
+            <span class="axis-column">横轴模型</span>
+          </div>
+          <div class="matrix-scroll">
+            <table class="pairwise-matrix" id="pairwise-matrix" aria-label="模型配对质量比较矩阵"></table>
+          </div>
+        </div>
+        <div class="pair-tooltip hidden" id="pair-tooltip" role="tooltip"></div>
       </section>
 
       <section>
@@ -104,6 +159,8 @@
                 <th>参考译文</th>
                 <th>模型输出</th>
                 <th>评分</th>
+                <th>状态</th>
+                <th>调用</th>
                 <th>延迟</th>
                 <th>Token</th>
                 <th>价格</th>

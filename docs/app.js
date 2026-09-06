@@ -45,6 +45,11 @@ function fmtPct(v) {
   return `${v}%`;
 }
 
+function fmtSigned(v) {
+  if (v == null || Number.isNaN(v)) return '—';
+  return `${v > 0 ? '+' : ''}${v}`;
+}
+
 function fmtMalformed(summary) {
   const n = summary.malformed_count;
   if (n == null) return '—';
@@ -57,6 +62,23 @@ function fmtCallFailed(summary) {
   if (n == null) return '—';
   const ratio = summary.call_failure_ratio;
   return ratio != null ? `${n} (${ratio}%)` : String(n);
+}
+
+function fmtIssue(summary, countKey, ratioKey, checkedKey) {
+  if (!summary[checkedKey]) return '—';
+  const count = summary[countKey] ?? 0;
+  const ratio = summary[ratioKey];
+  return ratio != null ? `${count} (${ratio}%)` : String(count);
+}
+
+function fmtLanguage(summary) {
+  if (!summary.language_checked_count) return '—';
+  const invalid = fmtIssue(
+    summary, 'language_invalid_count', 'language_invalid_ratio', 'language_checked_count',
+  );
+  return summary.language_unknown_count
+    ? `${invalid} · 未判 ${summary.language_unknown_count}`
+    : invalid;
 }
 
 function esc(s) {
@@ -191,6 +213,10 @@ function aggregateSummary(models) {
     const mid = Math.floor(s.length / 2);
     return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2 * 100) / 100;
   };
+  const retryTracked = models.reduce((n, m) => n + (m.summary.retry_tracked_count ?? 0), 0);
+  const firstCallSuccess = models.reduce((n, m) => n + (m.summary.first_call_success_count ?? 0), 0);
+  const firstOutputValid = models.reduce((n, m) => n + (m.summary.first_output_valid_count ?? 0), 0);
+  const totalRetries = models.reduce((n, m) => n + (m.summary.total_retries ?? 0), 0);
   return {
     count: allRecords.length,
     avg_score: avg(scores),
@@ -204,7 +230,7 @@ function aggregateSummary(models) {
     malformed_count: models.reduce((n, m) => n + (m.summary.malformed_count ?? 0), 0),
     valid_count: models.reduce((n, m) => n + (m.summary.valid_count ?? 0), 0),
     malformed_ratio: (() => {
-      const total = models.reduce((n, m) => n + (m.summary.count ?? 0), 0);
+      const total = models.reduce((n, m) => n + (m.summary.call_success_count ?? 0), 0);
       const bad = models.reduce((n, m) => n + (m.summary.malformed_count ?? 0), 0);
       return total ? Math.round(bad / total * 10000) / 100 : null;
     })(),
@@ -212,6 +238,45 @@ function aggregateSummary(models) {
     call_failure_ratio: (() => {
       const total = models.reduce((n, m) => n + (m.summary.count ?? 0), 0);
       const bad = models.reduce((n, m) => n + (m.summary.call_failed_count ?? 0), 0);
+      return total ? Math.round(bad / total * 10000) / 100 : null;
+    })(),
+    retry_tracked_count: retryTracked,
+    first_call_success_count: firstCallSuccess,
+    first_call_success_ratio: retryTracked
+      ? Math.round(firstCallSuccess / retryTracked * 10000) / 100 : null,
+    first_output_valid_count: firstOutputValid,
+    first_output_valid_ratio: retryTracked
+      ? Math.round(firstOutputValid / retryTracked * 10000) / 100 : null,
+    first_request_success_count: firstOutputValid,
+    first_request_success_ratio: retryTracked
+      ? Math.round(firstOutputValid / retryTracked * 10000) / 100 : null,
+    total_retries: totalRetries,
+    avg_retries: retryTracked
+      ? Math.round(totalRetries / retryTracked * 100) / 100 : null,
+    retried_count: models.reduce((n, m) => n + (m.summary.retried_count ?? 0), 0),
+    recovered_by_retry_count: models.reduce(
+      (n, m) => n + (m.summary.recovered_by_retry_count ?? 0), 0,
+    ),
+    language_invalid_count: models.reduce((n, m) => n + (m.summary.language_invalid_count ?? 0), 0),
+    language_unknown_count: models.reduce((n, m) => n + (m.summary.language_unknown_count ?? 0), 0),
+    language_checked_count: models.reduce((n, m) => n + (m.summary.language_checked_count ?? 0), 0),
+    language_invalid_ratio: (() => {
+      const total = models.reduce((n, m) => n + (m.summary.language_checked_count ?? 0), 0);
+      const bad = models.reduce((n, m) => n + (m.summary.language_invalid_count ?? 0), 0);
+      return total ? Math.round(bad / total * 10000) / 100 : null;
+    })(),
+    policy_failed_count: models.reduce((n, m) => n + (m.summary.policy_failed_count ?? 0), 0),
+    policy_checked_count: models.reduce((n, m) => n + (m.summary.policy_checked_count ?? 0), 0),
+    policy_failure_ratio: (() => {
+      const total = models.reduce((n, m) => n + (m.summary.policy_checked_count ?? 0), 0);
+      const bad = models.reduce((n, m) => n + (m.summary.policy_failed_count ?? 0), 0);
+      return total ? Math.round(bad / total * 10000) / 100 : null;
+    })(),
+    judge_failed_count: models.reduce((n, m) => n + (m.summary.judge_failed_count ?? 0), 0),
+    judge_attempted_count: models.reduce((n, m) => n + (m.summary.judge_attempted_count ?? 0), 0),
+    judge_failure_ratio: (() => {
+      const total = models.reduce((n, m) => n + (m.summary.judge_attempted_count ?? 0), 0);
+      const bad = models.reduce((n, m) => n + (m.summary.judge_failed_count ?? 0), 0);
       return total ? Math.round(bad / total * 10000) / 100 : null;
     })(),
   };
@@ -240,13 +305,80 @@ function renderOverview() {
     { label: '样本数', value: fmt(s.count) },
     { label: 'Malformed', value: fmtMalformed(s) },
     { label: '调用失败', value: fmtCallFailed(s) },
+    { label: '语言错误', value: fmtLanguage(s) },
+    { label: '规则失败', value: fmtIssue(s, 'policy_failed_count', 'policy_failure_ratio', 'policy_checked_count') },
+    { label: 'Judge 失败', value: fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count') },
   ];
+
+  if (s.retry_tracked_count) {
+    cards.push(
+      { label: '首次请求成功率', value: fmtPct(s.first_request_success_ratio) },
+      { label: '首次调用返回率', value: fmtPct(s.first_call_success_ratio) },
+      { label: '重试恢复', value: fmt(s.recovered_by_retry_count) },
+      { label: '平均重试', value: fmt(s.avg_retries) },
+    );
+  }
 
   document.getElementById('overview-cards').innerHTML = cards.map(c => `
     <div class="card">
       <div class="label">${c.label}</div>
       <div class="value ${c.cls || ''}">${c.value}</div>
     </div>
+  `).join('');
+}
+
+function renderReliability() {
+  const section = document.getElementById('reliability-section');
+  const models = getActiveModels();
+  const rows = [];
+  models.forEach(model => {
+    const s = model.summary;
+    if (s.retry_tracked_count) {
+      rows.push({
+        model: model.name,
+        stage: '翻译',
+        tracked: s.retry_tracked_count,
+        firstRequest: s.first_request_success_ratio,
+        firstCall: s.first_call_success_ratio,
+        retried: s.retried_count,
+        recovered: s.recovered_by_retry_count,
+        unavailable: (s.call_failed_count ?? 0) + (s.malformed_count ?? 0),
+        avgRetries: s.avg_retries,
+      });
+    }
+    if (s.judge_retry_tracked_count) {
+      rows.push({
+        model: model.name,
+        stage: 'Judge',
+        tracked: s.judge_retry_tracked_count,
+        firstRequest: s.judge_first_request_success_ratio,
+        firstCall: s.judge_first_call_success_ratio,
+        retried: s.judge_retried_count,
+        recovered: s.judge_recovered_by_retry_count,
+        unavailable: s.judge_failed_count,
+        avgRetries: s.judge_retry_tracked_count
+          ? Math.round(s.judge_total_retries / s.judge_retry_tracked_count * 100) / 100
+          : null,
+      });
+    }
+  });
+  if (!rows.length) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+  document.querySelector('#reliability-table tbody').innerHTML = rows.map(row => `
+    <tr>
+      <td><strong>${esc(row.model)}</strong></td>
+      <td><span class="badge reliability-stage">${row.stage}</span></td>
+      <td class="num">${row.tracked}</td>
+      <td class="num"><span class="reliability-value">${fmtPct(row.firstRequest)}</span></td>
+      <td class="num"><span class="reliability-value">${fmtPct(row.firstCall)}</span></td>
+      <td class="num">${row.retried}</td>
+      <td class="num recovered">${row.recovered}</td>
+      <td class="num ${row.unavailable ? 'unavailable' : ''}">${row.unavailable}</td>
+      <td class="num">${fmt(row.avgRetries)}</td>
+    </tr>
   `).join('');
 }
 
@@ -274,9 +406,165 @@ function renderCompare() {
       <td class="num">${fmtPct(s.low_score_ratio)}</td>
       <td class="num">${fmtMalformed(s)}</td>
       <td class="num">${fmtCallFailed(s)}</td>
+      <td class="num">${fmtLanguage(s)}</td>
+      <td class="num">${fmtIssue(s, 'policy_failed_count', 'policy_failure_ratio', 'policy_checked_count')}</td>
+      <td class="num">${fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count')}</td>
       <td class="num">${fmtMoney(totalCost)}</td>
     </tr>`;
   }).join('');
+}
+
+function pairKey(pair) {
+  return `${pair.model_a}|||${pair.model_b}`;
+}
+
+function orientPair(pair, rowModel, columnModel) {
+  const rowIsA = pair.model_a === rowModel;
+  const reverse = value => value == null ? null : -value;
+  return {
+    rowModel,
+    columnModel,
+    rowWins: rowIsA ? pair.model_a_wins : pair.model_b_wins,
+    columnWins: rowIsA ? pair.model_b_wins : pair.model_a_wins,
+    ties: pair.ties,
+    rowAvg: rowIsA ? pair.model_a_avg_score : pair.model_b_avg_score,
+    columnAvg: rowIsA ? pair.model_b_avg_score : pair.model_a_avg_score,
+    meanDelta: rowIsA ? pair.mean_score_delta : reverse(pair.mean_score_delta),
+    medianDelta: rowIsA ? pair.median_score_delta : reverse(pair.median_score_delta),
+    ciLow: rowIsA ? pair.ci95_low : reverse(pair.ci95_high),
+    ciHigh: rowIsA ? pair.ci95_high : reverse(pair.ci95_low),
+    result: pair.winner === rowModel ? 'win' : pair.winner === columnModel ? 'loss' : 'uncertain',
+    commonCount: pair.common_count,
+    pairedCount: pair.score_paired_count,
+    coverage: pair.score_coverage,
+    unscoredCount: pair.unscored_common_count,
+    rowOnlyCount: rowIsA ? pair.model_a_only_count : pair.model_b_only_count,
+    columnOnlyCount: rowIsA ? pair.model_b_only_count : pair.model_a_only_count,
+  };
+}
+
+function pairResultText(result) {
+  if (result === 'win') return '纵轴模型显著更优';
+  if (result === 'loss') return '纵轴模型显著更差';
+  return '差异不明确';
+}
+
+function pairAriaLabel(pair) {
+  return `${pair.rowModel} 相对 ${pair.columnModel}：${pairResultText(pair.result)}，平均分差 ${fmtSigned(pair.meanDelta)}，95% 置信区间 ${fmtSigned(pair.ciLow)} 到 ${fmtSigned(pair.ciHigh)}`;
+}
+
+function pairTooltipMarkup(pair) {
+  return `
+    <div class="tooltip-kicker">纵轴相对横轴</div>
+    <div class="tooltip-models">
+      <strong>${esc(pair.rowModel)}</strong><span>vs</span><strong>${esc(pair.columnModel)}</strong>
+    </div>
+    <div class="tooltip-verdict ${pair.result}">
+      <i class="legend-dot ${pair.result}"></i>${pairResultText(pair.result)}
+    </div>
+    <div class="tooltip-metrics">
+      <div><span>平均分差</span><strong>${fmtSigned(pair.meanDelta)}</strong></div>
+      <div><span>中位数差</span><strong>${fmtSigned(pair.medianDelta)}</strong></div>
+      <div><span>95% CI</span><strong>[${fmtSigned(pair.ciLow)}, ${fmtSigned(pair.ciHigh)}]</strong></div>
+      <div><span>配对覆盖</span><strong>${pair.pairedCount} / ${pair.commonCount}</strong></div>
+    </div>
+    <div class="tooltip-scoreline">
+      <span><b>${pair.rowWins}</b> 纵轴胜</span>
+      <span><b>${pair.ties}</b> 平</span>
+      <span><b>${pair.columnWins}</b> 横轴胜</span>
+    </div>
+    <div class="tooltip-foot">
+      配对均分 ${fmt(pair.rowAvg)} / ${fmt(pair.columnAvg)} · 覆盖率 ${fmtPct(pair.coverage)}
+      ${pair.unscoredCount ? ` · 未评分 ${pair.unscoredCount}` : ''}
+      ${pair.rowOnlyCount || pair.columnOnlyCount ? ` · 独有样本 ${pair.rowOnlyCount} / ${pair.columnOnlyCount}` : ''}
+    </div>`;
+}
+
+function positionPairTooltip(target) {
+  const tooltip = document.getElementById('pair-tooltip');
+  const targetRect = target.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const gap = 12;
+  let left = targetRect.right + gap;
+  if (left + tooltipRect.width > window.innerWidth - gap) {
+    left = targetRect.left - tooltipRect.width - gap;
+  }
+  left = Math.max(gap, Math.min(left, window.innerWidth - tooltipRect.width - gap));
+  let top = targetRect.top + targetRect.height / 2 - tooltipRect.height / 2;
+  top = Math.max(gap, Math.min(top, window.innerHeight - tooltipRect.height - gap));
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function showPairTooltip(target, pair) {
+  const tooltip = document.getElementById('pair-tooltip');
+  tooltip.innerHTML = pairTooltipMarkup(pair);
+  tooltip.classList.remove('hidden');
+  positionPairTooltip(target);
+}
+
+function hidePairTooltip() {
+  document.getElementById('pair-tooltip').classList.add('hidden');
+}
+
+function renderPairwise() {
+  const section = document.getElementById('pairwise-section');
+  const comparison = state.data.comparisons;
+  const pairs = comparison?.pairs || [];
+  if (!pairs.length) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+
+  const method = comparison.methodology;
+  document.getElementById('pairwise-method').textContent =
+    `只比较共同且都有评分的样本；精确同分记平局。置信区间使用 ${method.bootstrap_iterations} 次固定种子的配对 bootstrap。`;
+
+  const models = state.data.models.map(model => model.name).sort((a, b) => a.localeCompare(b));
+  const pairMap = new Map();
+  pairs.forEach(pair => {
+    pairMap.set(`${pair.model_a}|||${pair.model_b}`, pair);
+    pairMap.set(`${pair.model_b}|||${pair.model_a}`, pair);
+  });
+
+  const matrix = document.getElementById('pairwise-matrix');
+  matrix.innerHTML = `
+    <thead><tr>
+      <th class="matrix-corner" scope="col"><span>纵轴 ↓</span><span>横轴 →</span></th>
+      ${models.map(model => `<th class="matrix-column-label" scope="col"><span>${esc(model)}</span></th>`).join('')}
+    </tr></thead>
+    <tbody>${models.map((rowModel, rowIndex) => `<tr>
+      <th class="matrix-row-label" scope="row">${esc(rowModel)}</th>
+      ${models.map((columnModel, columnIndex) => {
+        if (rowModel === columnModel) {
+          return '<td class="matrix-data diagonal" aria-label="同一模型，无需比较"><span>—</span></td>';
+        }
+        const rawPair = pairMap.get(`${rowModel}|||${columnModel}`);
+        if (!rawPair) {
+          return '<td class="matrix-data unavailable" aria-label="无配对数据"><span>·</span></td>';
+        }
+        const oriented = orientPair(rawPair, rowModel, columnModel);
+        return `<td class="matrix-data" data-row-index="${rowIndex}" data-column-index="${columnIndex}">
+          <button class="matrix-cell ${oriented.result}" type="button"
+            data-pair-key="${esc(pairKey(rawPair))}"
+            data-row-model="${esc(rowModel)}"
+            data-column-model="${esc(columnModel)}"
+            aria-label="${esc(pairAriaLabel(oriented))}">
+            <span class="matrix-dot" aria-hidden="true"></span>
+          </button>
+        </td>`;
+      }).join('')}
+    </tr>`).join('')}</tbody>`;
+
+  matrix.querySelectorAll('.matrix-cell').forEach(cell => {
+    const rawPair = pairs.find(pair => pairKey(pair) === cell.dataset.pairKey);
+    const oriented = orientPair(rawPair, cell.dataset.rowModel, cell.dataset.columnModel);
+    cell.addEventListener('mouseenter', () => showPairTooltip(cell, oriented));
+    cell.addEventListener('focus', () => showPairTooltip(cell, oriented));
+    cell.addEventListener('mouseleave', hidePairTooltip);
+    cell.addEventListener('blur', hidePairTooltip);
+  });
 }
 
 function destroyChart(id) {
@@ -457,6 +745,30 @@ async function loadRecords() {
 }
 
 function renderRecords(data) {
+  const statusText = r => {
+    if (r.call_success === false) return '调用失败';
+    if (r.trans_valid === false) return '格式错误';
+    if (r.judge_success == null && r.policy_pass == null && r.language_valid == null) return '旧协议';
+    const issues = [];
+    if (r.language_valid === false) issues.push('语言错误');
+    if (r.language_valid == null) issues.push('语言未判');
+    if (r.policy_pass === false) issues.push('规则失败');
+    if (r.policy_warnings?.length) issues.push('规则提醒');
+    if (r.judge_success === false) issues.push('Judge 失败');
+    if (r.judge_success === true && r.judge_acceptable === false) issues.push('Judge 不接受');
+    return issues.length ? issues.join(' / ') : '通过';
+  };
+  const attemptText = r => {
+    if (r.call_attempts == null) return '—';
+    if (r.recovered_by_retry === true) return `${r.call_attempts} 次 · 恢复`;
+    return `${r.call_attempts} 次`;
+  };
+  const attemptTitle = r => {
+    if (r.call_attempts == null) return '旧结果未记录尝试次数';
+    const firstCall = r.first_call_success === true ? '已返回' : '未返回';
+    const firstOutput = r.first_output_valid === true ? '可用' : '不可用';
+    return `首次调用${firstCall}；首次结果${firstOutput}；重试 ${r.call_retries ?? 0} 次`;
+  };
   const tbody = document.getElementById('records-body');
   tbody.innerHTML = data.records.map(r => `
     <tr>
@@ -466,11 +778,13 @@ function renderRecords(data) {
       <td class="text-cell" title="${esc(r.ref)}">${esc(truncate(r.ref))}</td>
       <td class="text-cell" title="${esc(r.trans)}">${esc(truncate(r.trans))}</td>
       <td><span class="score-pill ${scoreClass(r.score)}">${fmt(r.score)}</span></td>
+      <td><span class="badge status">${esc(statusText(r))}</span></td>
+      <td title="${esc(attemptTitle(r))}"><span class="badge attempts${r.recovered_by_retry === true ? ' recovered' : ''}">${esc(attemptText(r))}</span></td>
       <td>${fmt(r.latency_ms, ' ms')}</td>
       <td>${fmt(r.total_tokens)}</td>
       <td>${fmtMoney(calcCost(r.input_tokens, r.output_tokens, r.total_tokens, getModelPrice(r.model)))}</td>
     </tr>
-  `).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
+  `).join('') || '<tr><td colspan="11" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
 
   const totalPages = Math.max(1, Math.ceil(data.total / data.page_size));
   document.getElementById('page-info').textContent =
@@ -503,7 +817,9 @@ function bindFilters() {
 function render() {
   renderTabs();
   renderOverview();
+  renderReliability();
   renderCompare();
+  renderPairwise();
   renderCharts();
   populateFilters();
   loadRecords();

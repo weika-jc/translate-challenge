@@ -25,6 +25,12 @@ PRICES: dict[str, ModelPricing] = {
         cached_input_ratio=0.25,
     ),
     'gpt-oss-120b': ModelPricing(input_per_million=0.1500, output_per_million=0.6000),
+    'gpt-5-6-luna': ModelPricing(
+        input_per_million=0.2200,
+        output_per_million=1.3200,
+        billing_mode='cached_prompt',
+        cached_input_ratio=0.10,
+    ),
     'gemma-3-27b': ModelPricing(input_per_million=0.2300, output_per_million=0.3800),
     'gemma-3-27b-reasoning': ModelPricing(input_per_million=0.2300, output_per_million=0.3800),
     'haiku-4-5': ModelPricing(input_per_million=1.0000, output_per_million=5.0000),

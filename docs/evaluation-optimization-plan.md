@@ -344,23 +344,44 @@ P2 重试策略于 2026-09-04 调整完成。翻译和 Judge 对 Bedrock 限流�
 
 P2 核心执行链路已于 2026-09-04 通过阶段 review：身份预检、分阶段并发、断点续跑、显式重试与可靠性报告均可投入结果重建。“全量快速评判、少量详细复核”作为后续可选优化保留，不阻塞当前结果重建，也不在本阶段启动最终双顺序成对 Judge。
 
-业务语言代码于 2026-09-04 对齐：公开数据文件继续保留数据源使用的 `no`、`ja`，样本发现阶段分别转换为业务约定的 `nb`、`jp`，翻译与 Judge 调用边界再次兜底标准化。八份本地模型 Prompt 均显式声明包含 `zh` 在内的十种业务语言代码，并删除把 `no` 特判为 Norwegian Bokmål 的模型补丁；Haiku 优化版、DeepSeek 和 GLM 沿用 XML 分区，Gemma、GPT-OSS、Llama 与 Haiku 基线沿用 Markdown，Nova 沿用其强分隔标记。该协议变化后不得复用旧 checkpoint。
+业务语言代码于 2026-09-04 对齐：公开数据文件继续保留数据源使用的 `no`、`ja`，样本发现阶段分别转换为业务约定的 `nb`、`jp`，翻译与 Judge 调用边界再次兜底标准化。除线上原样对照组 `haiku-4-5` 外，其余七份本地候选 Prompt 均显式声明包含 `zh` 在内的十种业务语言代码，并删除把 `no` 特判为 Norwegian Bokmål 的模型补丁；Haiku 优化版、DeepSeek 和 GLM 沿用 XML 分区，Gemma、GPT-OSS 与 Llama 沿用 Markdown，Nova 沿用其强分隔标记。`haiku-4-5` 保留当前线上 Prompt 的原始语言说明，避免对照组混入实验性改动。该协议变化后不得复用旧 checkpoint。
 
 ### 当前模型结果重建
 
 Judge、翻译输出协议、业务语言代码和重试口径均已变化，因此仓库 `result/` 下现有文件只保留为历史结果，不能继续用于新比较。按以下清单逐个使用测试 Prompt Draft 重建；每个方案必须使用独立 `model_name`/checkpoint，并带 `--no-resume` 启动，只有翻译与 Judge 全部完成后才原子替换对应结果文件：
 
-- [ ] `deepseek-v3-2`；
-- [ ] `gemma-3-27b`；
-- [ ] `gemma-3-27b-reasoning`；
-- [ ] `glm-5`；
-- [ ] `gpt-oss-120b`；
-- [ ] `haiku-4-5`；
-- [ ] `haiku-4-5-opt`（测试 Prompt `7ZJL56AKIU`，启用 Structured Outputs）；
-- [ ] `llama-4-maverick`；
-- [ ] `nova-pro`。
+- [x] `deepseek-v3-2`（支持 `outputConfig`，不支持 Prompt Cache Point）；
+- [x] `gemma-3-27b`（支持 `outputConfig`，不支持 Prompt Cache Point）；
+- [x] `gemma-3-27b-reasoning`（Reasoning 开启，支持 `outputConfig`，不支持 Prompt Cache Point）；
+- [x] `glm-5`（支持 `outputConfig`，不支持 Prompt Cache Point）；
+- [x] `gpt-5-6-luna`（不支持 `outputConfig`，使用默认推理配置和隐式 Prompt Cache）；
+- [x] `gpt-oss-120b`（支持 `outputConfig`，不支持 Prompt Cache Point）；
+- [x] `haiku-4-5`（对照组，使用当前线上 Prompt 内容，关闭 Structured Outputs）；
+- [x] `haiku-4-5-opt`（测试 Prompt `7ZJL56AKIU`，启用 Structured Outputs）；
+- [x] `llama-4-maverick`（不支持 Prompt Cache Point 或 `outputConfig`）；
+- [x] `nova-pro`（Bedrock 不支持 `outputConfig`，使用纯 Prompt 约束）。
 
-每次执行前应核对远端测试 Draft 的模型与本地对应 Prompt；不得修改生产 Prompt `FQYN0INDHY`。旧 CSV 和旧 checkpoint 无法反推首次请求指标，不能与新协议结果混合。GPT-5.6 Luna 尚不属于“当前结果”重建清单，待其翻译方案和结果冻结后再与 Haiku 4.5 进入最终复核。
+结果重建严格逐个模型串行处理：每次先在唯一允许用于实验的 Prompt `7ZJL56AKIU` 配置目标模型并同步对应本地 Prompt，再完整运行翻译与 Judge；模型支持 Bedrock Structured Outputs 时原则上显式启用，否则保持纯 Prompt 输出约束。唯一例外是对照组 `haiku-4-5`：它必须复现当前线上 Prompt 和调用方式，即使模型支持也关闭 Structured Outputs；优化组 `haiku-4-5-opt` 才启用。不得读取、修改或调用 `1FWKA83D84`，该 Prompt 会直接影响线上服务；不得修改或调用生产 Prompt `FQYN0INDHY`，只允许为同步对照组而读取其 Draft 配置。旧 CSV 和旧 checkpoint 无法反推首次请求指标，不能与新协议结果混合。GPT-5.6 Luna 已在其他当前模型重建完成后补充，并与 Haiku 4.5 优化组一同进入后续最终复核。
+
+`haiku-4-5-opt` 于 2026-09-04 首个完成重建：统一样本 1480 条，翻译与 Judge 评分覆盖均为 1480/1480，二者首次请求成功率均为 100%，无调用失败、格式错误、重试或 Judge 失败；平均质量分为 98.03。结果使用 `7ZJL56AKIU` 的 Haiku 4.5 配置和请求级 Structured Outputs 生成。
+
+`haiku-4-5` 对照组随后完成重建：测试 Prompt `7ZJL56AKIU` 临时同步当前线上 Prompt 的 Draft 内容与模型配置，调用侧明确关闭 Structured Outputs。统一样本 1480 条，翻译与 Judge 评分覆盖均为 1480/1480；翻译首次请求成功率为 99.86%，首次调用返回率为 99.93%，2 条样本经过各 1 次重试后恢复，无最终调用失败或格式错误；Judge 首次请求成功率为 100%，无失败。平均质量分为 98.18。
+
+`nova-pro` 完成能力探针与全量重建：Bedrock 对带 `outputConfig` 的请求明确返回 `ValidationException`，因此本方案保留测试 Prompt 中的 Cache Point，并关闭 Structured Outputs。1480 次翻译调用均收到响应，首次输出可用率为 97.57%；36 条进入重试，35 条恢复，累计 38 次重试，最终仍有 1 条格式无效。Judge 对 1479 条可用译文全部成功且首次请求成功率为 100%；平均质量分为 96.78。Structured Outputs 不支持结论来自当前账号、区域、模型与 Converse 路径的实际请求，而非仅依据文档推断。
+
+`llama-4-maverick` 的能力探针分别确认 Prompt Cache Point 与 `outputConfig` 均不受支持，因此全量方案关闭两项能力。8 并发初跑在模型 token 配额处产生持续限流，1220 条临时记录中已有 29 条最终接口失败；该轮被中止且未生成正式结果。清空 checkpoint 后以翻译并发 2 从零重跑，1480 次调用全部收到响应且没有配额失败；首次输出可用率为 99.32%，10 条进入格式重试，6 条恢复，累计 16 次重试，最终 4 条格式无效。Judge 对 1476 条可用译文全部成功且首次请求成功率为 100%；平均质量分为 98.02。正式结果不包含被弃用初跑中的限流失败。
+
+`gpt-oss-120b` 的探针确认 Prompt Cache Point 不受支持，但移除 Cache 后 `outputConfig` 可被 API 接受，因此全量方案启用 Structured Outputs。实际输出可靠性并未得到保证：1480 条样本共发起 3623 次调用，首次请求成功率仅 19.66%；1189 条进入重试、401 条恢复，最终 692 条格式有效、785 条格式无效，另有 3 条虽收到 API 响应但无文本内容。785 条格式无效输出全部以畸形的 `{"{` 对象起始，说明是稳定的模型/结构化输出组合问题，而不是零散围栏或解析器误判。翻译 checkpoint 完成后进程异常退出（exit 139），阶段恢复校验了 1480 个唯一记录并从已有 Judge checkpoint 继续，未重复翻译；692 条有效译文的 Judge 均首次成功，平均质量分为 98.21。该质量分只覆盖 46.76% 的可用译文，不能脱离格式覆盖率解读。
+
+`deepseek-v3-2` 的探针确认 Prompt Cache Point 不受支持，但 `outputConfig` 可用，因此全量方案启用 Structured Outputs。1480 条翻译最终全部格式有效；首次调用返回率为 99.93%，首次请求成功率为 99.80%，3 条进入重试并全部恢复，累计 3 次重试，无最终调用或格式失败。Judge 1480/1480 全部首次成功，平均质量分为 96.74。单模型静态报告构建通过。
+
+`glm-5` 的探针确认 Prompt Cache Point 不受支持，但 `outputConfig` 可用，因此全量方案启用 Structured Outputs。1480 条翻译与 Judge 均首次成功，首次请求成功率、格式有效率和评分覆盖率均为 100%，无调用失败、格式错误或重试；平均质量分为 97.85。单模型静态报告构建通过。
+
+普通 `gemma-3-27b` 的探针确认 Prompt Cache Point 不受支持，但 `outputConfig` 可用，因此使用默认模型参数并启用 Structured Outputs。1480 条翻译与 Judge 均首次成功，首次请求成功率、格式有效率和评分覆盖率均为 100%，无调用失败、格式错误或重试；平均质量分为 97.51。单模型静态报告构建通过。
+
+`gemma-3-27b-reasoning` 使用同一模型和本地 Prompt，仅打开 Bedrock Prompt Management 控制台的 Reasoning 开关。读取测试 Prompt `7ZJL56AKIU` 的 Draft 后确认控制台实际保存为 `additionalModelRequestFields.thinking={type: enabled, budget_tokens: 1024}`，同时显式保存默认 `temperature=1.0`、`topP=1.0`；该配置已加入本地实验 Prompt 配置工具以便复现。本组合的请求探针确认 Reasoning 与 Structured Outputs 可以同时使用，随后以两项均开启的配置从零完成全量运行。1480 条翻译与 Judge 均首次成功，格式有效率和评分覆盖率均为 100%，无调用失败、格式错误或重试；平均质量分为 97.59，翻译平均延迟约 714 ms，P95 约 1005 ms。与普通组的 1480 条逐样本评分相比，Reasoning 组均分高 0.08，但普通组胜 81 条、Reasoning 组胜 75 条、1324 条平分，普通组减 Reasoning 组的均值差 95% bootstrap 区间为 `[-0.31, 0.15]`，因此当前数据不支持两者存在可靠质量差异；两次分批运行的延迟也不应解读为 Reasoning 更快。
+
+`gpt-5-6-luna` 使用本地专用 Prompt 和 `us.openai.gpt-5.6-luna` Geo inference profile。Bedrock Prompt Management 编辑页及保存后的 Draft 均没有 Reasoning 配置，因此保留模型默认推理行为；AWS 模型能力页明确标记 Structured Outputs 不受支持，本方案关闭请求级 `outputConfig`，只依靠 Prompt 约束单行 JSON。1480 条翻译最终全部格式有效，只有 1 条首次调用读取超时并在第 2 次尝试恢复，因此首次调用返回率和首次请求成功率均为 99.93%，累计 1 次重试，无最终调用或格式失败；Judge 1480/1480 全部首次成功。平均质量分为 98.87，翻译平均延迟约 2302 ms，P95 约 4953 ms。与 `haiku-4-5-opt` 的现有逐样本评分相比，Luna 胜 178 条、平 1236 条、负 66 条，均分高 0.84，差值的 95% bootstrap 区间为 `[0.47, 1.22]`；该结果仍基于两份译文分别独立评分，不替代计划中的双顺序成对 Judge。Luna 在未设置显式 cache point 时仍由 Bedrock 默认启用隐式 Prompt Cache；一次完整 usage 探针确认 `totalTokens-inputTokens-outputTokens` 与 `cacheReadInputTokens` 相等，全量运行平均约 1363 个缓存读取 token/请求。当前接口既未提供 Reasoning 开关，也未单列 reasoning token，故不能从本次响应证明或调整所谓默认 medium 推理级别。
 
 ### 最终方案复核（暂缓）
 
