@@ -111,7 +111,7 @@ def main():
     parser.add_argument('--port', '-p', type=int, default=8765, help='服务端口 (默认: 8765)')
     parser.add_argument('--host', default='127.0.0.1', help='绑定地址 (默认: 127.0.0.1)')
     parser.add_argument('--build', '-b', action='store_true', help='构建静态网站（无需启动服务）')
-    parser.add_argument('--output', '-o', default='dist/report', help='静态网站输出目录 (默认: dist/report)')
+    parser.add_argument('--output', '-o', default='docs', help='静态网站输出目录 (默认: docs)')
     args = parser.parse_args()
 
     paths = resolve_csv_paths(args.csv, args.dir if not args.csv else None)
@@ -128,7 +128,10 @@ def main():
         size_mb = sum(f.stat().st_size for f in out.rglob('*') if f.is_file()) / (1024 * 1024)
         print(f'\n静态网站已生成: {out.resolve()}')
         print(f'  共 {len(paths)} 个模型, 约 {size_mb:.1f} MB')
-        print('  用浏览器打开 index.html，或: python -m http.server --directory dist/report')
+        print(
+            '  用浏览器打开 index.html，或: '
+            f'python -m http.server --directory {out}'
+        )
         return
 
     ReportHandler.models_data = prepare_models_data(paths)

@@ -30,6 +30,35 @@ LUNA_DIRECT_EXECUTION_BLOCK = (
 
 
 class PromptLanguageContractTests(unittest.TestCase):
+    def test_haiku_opt_cache_only_adds_real_world_examples(self):
+        marker = '  <!-- Real-world chat examples -->\n'
+        for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR):
+            baseline = (directory / 'haiku-4-5-opt').read_text(encoding='utf-8')
+            variant = (directory / 'haiku-4-5-opt-cache').read_text(
+                encoding='utf-8'
+            )
+            prefix, real_world = variant.split(marker, 1)
+            _, suffix = real_world.split('</examples>', 1)
+            with self.subTest(directory=directory.name):
+                self.assertEqual(prefix + '</examples>' + suffix, baseline)
+
+    def test_haiku_opt_cache_examples_cycle_through_all_target_languages(self):
+        expected_targets = list(SUPPORTED_LANGUAGES) * 3
+        for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR):
+            content = (directory / 'haiku-4-5-opt-cache').read_text(
+                encoding='utf-8'
+            )
+            section = content.split(
+                '  <!-- Real-world chat examples -->\n', 1,
+            )[1]
+            section = section.split('</examples>', 1)[0]
+            targets = re.findall(
+                r'(?m)^    <input>.* -> (zh|en|es|jp|de|fr|nl|da|nb|it)</input>$',
+                section,
+            )
+            with self.subTest(directory=directory.name):
+                self.assertEqual(targets, expected_targets)
+
     def test_luna_no_reasoning_variant_only_adds_direct_execution_instruction(self):
         for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR):
             baseline = (directory / 'gpt-5-6-luna').read_text(encoding='utf-8')
@@ -71,8 +100,8 @@ class PromptLanguageContractTests(unittest.TestCase):
         self.assertGreater(len(prompt_paths), 0)
         for path in prompt_paths:
             if path.name == 'haiku-4-5':
-                # The non-opt Haiku prompt is an exact snapshot of the current
-                # production control and must not be altered for this contract.
+                # The non-opt Haiku prompt is an exact production snapshot whose
+                # language codes are expressed by its terminology table.
                 continue
             content = path.read_text(encoding='utf-8')
             with self.subTest(prompt=path.name):

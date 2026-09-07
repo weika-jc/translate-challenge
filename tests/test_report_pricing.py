@@ -4,6 +4,12 @@ from report.pricing import calc_cost, get_pricing
 
 
 class ReportPricingTests(unittest.TestCase):
+    def test_haiku_prompt_variants_share_pricing(self):
+        self.assertEqual(
+            get_pricing('haiku-4-5-opt-cache'),
+            get_pricing('haiku-4-5'),
+        )
+
     def test_luna_prompt_variants_share_pricing(self):
         self.assertEqual(
             get_pricing('gpt-5-6-luna-no-reasoning'),

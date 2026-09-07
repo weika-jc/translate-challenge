@@ -1,4 +1,9 @@
 const STATIC_MODE = typeof window.REPORT_DATA !== 'undefined';
+const HIDDEN_MODEL_TABS = new Set([
+  'gpt-5-6-luna-no-reasoning',
+  'nova-pro',
+  'deepseek-v3-2',
+]);
 
 const state = {
   data: null,
@@ -107,7 +112,8 @@ async function loadData() {
     state.data = await res.json();
   }
   if (!state.data.models.length) throw new Error('无数据');
-  state.activeModel = state.data.models[0].name;
+  state.activeModel = state.data.models.find(m => !HIDDEN_MODEL_TABS.has(m.name))?.name
+    ?? state.data.models[0].name;
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('content').classList.remove('hidden');
   render();
@@ -203,7 +209,8 @@ function getActiveModels() {
 function renderTabs() {
   const el = document.getElementById('model-tabs');
   el.innerHTML = '';
-  state.data.models.forEach(m => {
+  const tabModels = state.data.models.filter(m => !HIDDEN_MODEL_TABS.has(m.name));
+  tabModels.forEach(m => {
     const btn = document.createElement('button');
     btn.className = 'model-tab' + (state.viewMode === 'single' && m.name === state.activeModel ? ' active' : '');
     btn.textContent = m.name;
@@ -215,7 +222,7 @@ function renderTabs() {
     };
     el.appendChild(btn);
   });
-  if (state.data.models.length > 1) {
+  if (tabModels.length > 1) {
     const allBtn = document.createElement('button');
     allBtn.className = 'model-tab' + (state.viewMode === 'all' ? ' active' : '');
     allBtn.textContent = '全部对比';
@@ -467,6 +474,7 @@ function renderCompare() {
         scoreRange: s.min_score,
         avgLatency: s.avg_latency_ms,
         p95Latency: s.p95_latency_ms,
+        cacheHit: s.cache_hit_ratio,
         lowScore: s.low_score_ratio,
         malformed: s.malformed_count,
         callFailed: s.call_failed_count,
@@ -501,6 +509,7 @@ function renderCompare() {
         <td class="num">${fmt(s.min_score)} / ${fmt(s.max_score)}</td>
         <td class="num">${fmt(s.avg_latency_ms, ' ms')}</td>
         <td class="num">${fmt(s.p95_latency_ms, ' ms')}</td>
+        <td class="num">${fmtPct(s.cache_hit_ratio)}</td>
         <td class="num">${fmtPct(s.low_score_ratio)}</td>
         <td class="num">${fmtMalformed(s)}</td>
         <td class="num">${fmtCallFailed(s)}</td>

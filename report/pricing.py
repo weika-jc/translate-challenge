@@ -65,6 +65,13 @@ PRICES: dict[str, ModelPricing] = {
         cached_input_ratio=0.10,
         cache_write_input_ratio=1.25,
     ),
+    'haiku-4-5-opt-cache': ModelPricing(
+        input_per_million=1.0000,
+        output_per_million=5.0000,
+        billing_mode='cached_prompt',
+        cached_input_ratio=0.10,
+        cache_write_input_ratio=1.25,
+    ),
     'deepseek-v3-2': ModelPricing(input_per_million=0.6200, output_per_million=1.8500),
     'llama-4-maverick': ModelPricing(input_per_million=0.2400, output_per_million=0.9700),
     'glm-5': ModelPricing(input_per_million=1.0000, output_per_million=3.2000),

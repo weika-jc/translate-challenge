@@ -16,6 +16,7 @@ PROMPT_NAMES = (
     'gpt-oss-120b',
     'haiku-4-5',
     'haiku-4-5-opt',
+    'haiku-4-5-opt-cache',
     'llama-4-maverick',
     'nova-pro',
 )
@@ -46,7 +47,7 @@ def _remove_suppression_examples(text: str, prompt_name: str) -> str:
         pattern = rf'^- Input: `{source} -> [^`\n]+`\n  Output: `[^\n]+`\n'
     elif prompt_name == 'haiku-4-5':
         pattern = rf'^"{source}" → [^\n]+\n\{{[^\n]+\}}\n\n'
-    elif prompt_name == 'haiku-4-5-opt':
+    elif prompt_name in {'haiku-4-5-opt', 'haiku-4-5-opt-cache'}:
         pattern = rf'^  <example>\n    <input>{source}.*?^  </example>\n'
     else:
         raise ValueError(f'unsupported evaluation prompt: {prompt_name}')
@@ -111,7 +112,7 @@ def build_evaluation_prompt(prompt_name: str, production: str) -> str:
             '9. **Unrecognized language**:',
             prompt_name,
         )
-    elif prompt_name == 'haiku-4-5-opt':
+    elif prompt_name in {'haiku-4-5-opt', 'haiku-4-5-opt-cache'}:
         text = _replace_once(
             text,
             'filter profanity based on context, and output structured JSON',

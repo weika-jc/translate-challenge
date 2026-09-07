@@ -25,9 +25,15 @@ python -u -m evaluate --stage judge --judge-concurrency 8
 python -m report --port 8800
 ```
 
+发布静态报告到 GitHub Pages 使用的 `docs/` 目录：
+
+```shell
+python -m report --build
+```
+
 Judge 校准样本和操作说明见 [calibration/README.md](calibration/README.md)。当前评测 CSV 会分别记录调用、JSON 格式、目标语言、业务规则和 Judge 状态；`translation_structured` 表示翻译调用是否启用 Bedrock Structured Outputs，`translation_score` 是 MQM-lite 错误经固定权重计算出的语言质量分，`score` 暂时作为兼容别名保留。
 
-当前 `haiku-4-5-opt` 方案显式启用 Structured Outputs，Schema 为 `{"c": string}`。Schema 被拒绝时不会自动降级；输出不可解析时会按统一策略重试，并通过首次输出可用率保留格式能力差异。`haiku-4-5` 是复现当前线上 Prompt 与调用方式的对照组，即使模型支持也必须关闭 Structured Outputs。GPT-5.6 Luna 的 Bedrock 方案同样将该开关保持为 `False`，只通过 Prompt 约束输出格式；它使用 `us.openai.gpt-5.6-luna` inference profile，并保留 Prompt Management 中不可调的默认推理行为。
+`haiku-4-5` 是复现原线上 Prompt 与调用方式的固定对照组，即使模型支持也必须关闭 Structured Outputs。`haiku-4-5-opt` 显式启用 Structured Outputs，Schema 为 `{"c": string}`；`haiku-4-5-opt-cache` 以该 XML Prompt 为基础补充真实聊天示例，并在 Prompt Management 中仅缓存固定 system prompt，同样启用 Structured Outputs。Schema 被拒绝时不会自动降级；输出不可解析时会按统一策略重试，并通过首次输出可用率保留格式能力差异。GPT-5.6 Luna 的 Bedrock 方案将该开关保持为 `False`，只通过 Prompt 约束输出格式；它使用 `us.openai.gpt-5.6-luna` inference profile，并保留 Prompt Management 中不可调的默认推理行为。
 
 Prompt ARN 和 Prompt ID 不写入仓库。运行评测时通过 `BEDROCK_PROMPT_ARN` 或 `--model-id` 传入；更新 Prompt Management Draft 时通过 `BEDROCK_PROMPT_ID` 或 `--prompt-id` 传入。每次只配置并运行一个实验模型，完成后再切换下一个。对外结果会将 Prompt ARN 记为 `managed-prompt`，不暴露具体资源标识。
 
