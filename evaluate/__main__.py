@@ -47,8 +47,11 @@ CSV_FIELDS = [
     'judge_first_call_success', 'judge_first_output_valid',
     'judge_recovered_by_retry',
     'translation_score', 'score',
-    'input_tokens', 'output_tokens', 'total_tokens', 'latency_ms',
-    'judge_input_tokens', 'judge_output_tokens', 'judge_total_tokens', 'judge_latency_ms',
+    'input_tokens', 'output_tokens', 'total_tokens',
+    'cache_read_input_tokens', 'cache_write_input_tokens', 'latency_ms',
+    'judge_input_tokens', 'judge_output_tokens', 'judge_total_tokens',
+    'judge_cache_read_input_tokens', 'judge_cache_write_input_tokens',
+    'judge_latency_ms',
 ]
 
 
@@ -226,6 +229,8 @@ async def translate_record(
         'input_tokens': metrics.get('input_tokens'),
         'output_tokens': metrics.get('output_tokens'),
         'total_tokens': metrics.get('total_tokens'),
+        'cache_read_input_tokens': metrics.get('cache_read_input_tokens'),
+        'cache_write_input_tokens': metrics.get('cache_write_input_tokens'),
         'latency_ms': metrics.get('latency_ms'),
     })
     return record
@@ -263,6 +268,8 @@ async def judge_record(record: dict) -> dict:
         'judge_input_tokens': judge['input_tokens'],
         'judge_output_tokens': judge['output_tokens'],
         'judge_total_tokens': judge['total_tokens'],
+        'judge_cache_read_input_tokens': judge.get('cache_read_input_tokens'),
+        'judge_cache_write_input_tokens': judge.get('cache_write_input_tokens'),
         'judge_latency_ms': judge['latency_ms'],
     })
     return record
@@ -483,8 +490,8 @@ async def run(args: argparse.Namespace) -> None:
     result_path = Path(args.output_dir) / f'{args.model_name}.csv'
 
     print(f'discovered {len(samples)} records')
-    identity = await check_aws_identity()
-    print(f"AWS identity: account={identity.get('Account')} arn={identity.get('Arn')}")
+    await check_aws_identity()
+    print('AWS identity verified')
 
     if args.stage in ('all', 'translate'):
         if not args.resume and judge_path.exists():

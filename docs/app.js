@@ -7,6 +7,7 @@ const state = {
   page: 1,
   pageSize: 50,
   charts: {},
+  compareSort: { key: 'avgScore', direction: 'desc' },
 };
 
 const CHART_COLORS = {
@@ -149,14 +150,40 @@ function getModelPrice(modelName) {
     output_per_million: Number(p?.output_per_million ?? 0) || 0,
     billing_mode: p?.billing_mode ?? 'standard',
     cached_input_ratio: Number(p?.cached_input_ratio ?? 0.25) || 0.25,
+    cache_write_input_ratio: Number(p?.cache_write_input_ratio ?? 1.25) || 1.25,
+    cache_read_per_million: p?.cache_read_per_million == null
+      ? null : Number(p.cache_read_per_million),
+    cache_write_per_million: p?.cache_write_per_million == null
+      ? null : Number(p.cache_write_per_million),
   };
 }
 
-function calcCost(inputTokens, outputTokens, totalTokens, pricing) {
+function calcCost(
+  inputTokens,
+  outputTokens,
+  totalTokens,
+  pricing,
+  cacheReadInputTokens = null,
+  cacheWriteInputTokens = null,
+) {
   const inp = inputTokens ?? 0;
   const out = outputTokens ?? 0;
   const pin = pricing.input_per_million ?? 0;
   const pout = pricing.output_per_million ?? 0;
+
+  const cacheMetricsAvailable = cacheReadInputTokens != null || cacheWriteInputTokens != null;
+  if (pricing.billing_mode === 'cached_prompt' && cacheMetricsAvailable) {
+    const cacheRead = cacheReadInputTokens ?? 0;
+    const cacheWrite = cacheWriteInputTokens ?? 0;
+    const cacheReadRate = pricing.cache_read_per_million
+      ?? pin * (pricing.cached_input_ratio ?? 0.25);
+    const cacheWriteRate = pricing.cache_write_per_million
+      ?? pin * (pricing.cache_write_input_ratio ?? 1.25);
+    return (inp / 1_000_000) * pin
+      + (cacheRead / 1_000_000) * cacheReadRate
+      + (cacheWrite / 1_000_000) * cacheWriteRate
+      + (out / 1_000_000) * pout;
+  }
 
   if (pricing.billing_mode === 'cached_prompt' && totalTokens != null) {
     const total = totalTokens ?? 0;
@@ -214,6 +241,15 @@ function aggregateSummary(models) {
     return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2 * 100) / 100;
   };
   const retryTracked = models.reduce((n, m) => n + (m.summary.retry_tracked_count ?? 0), 0);
+  const cacheTracked = models.reduce((n, m) => n + (m.summary.cache_tracked_count ?? 0), 0);
+  const cacheHits = models.reduce((n, m) => n + (m.summary.cache_hit_count ?? 0), 0);
+  const cacheWrites = models.reduce((n, m) => n + (m.summary.cache_write_count ?? 0), 0);
+  const cacheReadTokens = models.reduce(
+    (n, m) => n + (m.summary.cache_read_input_tokens_sum ?? 0), 0,
+  );
+  const cacheWriteTokens = models.reduce(
+    (n, m) => n + (m.summary.cache_write_input_tokens_sum ?? 0), 0,
+  );
   const firstCallSuccess = models.reduce((n, m) => n + (m.summary.first_call_success_count ?? 0), 0);
   const firstOutputValid = models.reduce((n, m) => n + (m.summary.first_output_valid_count ?? 0), 0);
   const totalRetries = models.reduce((n, m) => n + (m.summary.total_retries ?? 0), 0);
@@ -227,6 +263,17 @@ function aggregateSummary(models) {
     avg_latency_ms: avg(latencies),
     avg_total_tokens: avg(tokens),
     total_tokens_sum: tokens.length ? tokens.reduce((a, b) => a + b, 0) : null,
+    cache_tracked_count: cacheTracked,
+    cache_hit_count: cacheHits,
+    cache_write_count: cacheWrites,
+    cache_hit_ratio: cacheTracked
+      ? Math.round(cacheHits / cacheTracked * 10000) / 100 : null,
+    avg_cache_read_input_tokens: cacheTracked
+      ? Math.round(cacheReadTokens / cacheTracked * 100) / 100 : null,
+    avg_cache_write_input_tokens: cacheTracked
+      ? Math.round(cacheWriteTokens / cacheTracked * 100) / 100 : null,
+    cache_read_input_tokens_sum: cacheTracked ? cacheReadTokens : null,
+    cache_write_input_tokens_sum: cacheTracked ? cacheWriteTokens : null,
     malformed_count: models.reduce((n, m) => n + (m.summary.malformed_count ?? 0), 0),
     valid_count: models.reduce((n, m) => n + (m.summary.valid_count ?? 0), 0),
     malformed_ratio: (() => {
@@ -319,6 +366,14 @@ function renderOverview() {
     );
   }
 
+  if (s.cache_tracked_count) {
+    cards.push(
+      { label: '缓存命中率', value: fmtPct(s.cache_hit_ratio) },
+      { label: '缓存读取 Token', value: fmt(s.cache_read_input_tokens_sum) },
+      { label: '缓存写入 Token', value: fmt(s.cache_write_input_tokens_sum) },
+    );
+  }
+
   document.getElementById('overview-cards').innerHTML = cards.map(c => `
     <div class="card">
       <div class="label">${c.label}</div>
@@ -390,28 +445,102 @@ function renderCompare() {
   }
   section.classList.remove('hidden');
   const tbody = document.querySelector('#compare-table tbody');
-  const sorted = [...state.data.models].sort((a, b) => (b.summary.avg_score ?? 0) - (a.summary.avg_score ?? 0));
-  tbody.innerHTML = sorted.map(m => {
+  const rows = state.data.models.map(m => {
     const s = m.summary;
     const p = getModelPrice(m.name);
-    const totalCost = calcCost(s.input_tokens_sum, s.output_tokens_sum, s.total_tokens_sum, p);
+    const totalCost = calcCost(
+      s.input_tokens_sum,
+      s.output_tokens_sum,
+      s.total_tokens_sum,
+      p,
+      s.cache_read_input_tokens_sum,
+      s.cache_write_input_tokens_sum,
+    );
+    return {
+      model: m,
+      totalCost,
+      sortValues: {
+        name: m.name,
+        count: s.count,
+        avgScore: s.avg_score,
+        medianScore: s.median_score,
+        scoreRange: s.min_score,
+        avgLatency: s.avg_latency_ms,
+        p95Latency: s.p95_latency_ms,
+        lowScore: s.low_score_ratio,
+        malformed: s.malformed_count,
+        callFailed: s.call_failed_count,
+        languageFailed: s.language_invalid_count,
+        policyFailed: s.policy_failed_count,
+        judgeFailed: s.judge_failed_count,
+        totalCost,
+      },
+    };
+  });
+  const { key, direction } = state.compareSort;
+  const sorted = rows.sort((left, right) => {
+    const a = left.sortValues[key];
+    const b = right.sortValues[key];
+    if (a == null && b == null) return left.model.name.localeCompare(right.model.name);
+    if (a == null) return 1;
+    if (b == null) return -1;
+    const comparison = typeof a === 'string'
+      ? a.localeCompare(b)
+      : a - b;
+    if (comparison) return direction === 'asc' ? comparison : -comparison;
+    return left.model.name.localeCompare(right.model.name);
+  });
+  updateCompareSortHeaders();
+  tbody.innerHTML = sorted.map(({ model: m, totalCost }) => {
+    const s = m.summary;
     return `<tr>
-      <td><strong>${esc(m.name)}</strong></td>
-      <td class="num">${s.count}</td>
-      <td class="num"><span class="score-pill ${scoreClass(s.avg_score)}">${fmt(s.avg_score)}</span></td>
-      <td class="num">${fmt(s.median_score)}</td>
-      <td class="num">${fmt(s.min_score)} / ${fmt(s.max_score)}</td>
-      <td class="num">${fmt(s.avg_latency_ms, ' ms')}</td>
-      <td class="num">${fmt(s.p95_latency_ms, ' ms')}</td>
-      <td class="num">${fmtPct(s.low_score_ratio)}</td>
-      <td class="num">${fmtMalformed(s)}</td>
-      <td class="num">${fmtCallFailed(s)}</td>
-      <td class="num">${fmtLanguage(s)}</td>
-      <td class="num">${fmtIssue(s, 'policy_failed_count', 'policy_failure_ratio', 'policy_checked_count')}</td>
-      <td class="num">${fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count')}</td>
-      <td class="num">${fmtMoney(totalCost)}</td>
-    </tr>`;
+        <td><strong>${esc(m.name)}</strong></td>
+        <td class="num">${s.count}</td>
+        <td class="num"><span class="score-pill ${scoreClass(s.avg_score)}">${fmt(s.avg_score)}</span></td>
+        <td class="num">${fmt(s.median_score)}</td>
+        <td class="num">${fmt(s.min_score)} / ${fmt(s.max_score)}</td>
+        <td class="num">${fmt(s.avg_latency_ms, ' ms')}</td>
+        <td class="num">${fmt(s.p95_latency_ms, ' ms')}</td>
+        <td class="num">${fmtPct(s.low_score_ratio)}</td>
+        <td class="num">${fmtMalformed(s)}</td>
+        <td class="num">${fmtCallFailed(s)}</td>
+        <td class="num">${fmtLanguage(s)}</td>
+        <td class="num">${fmtIssue(s, 'policy_failed_count', 'policy_failure_ratio', 'policy_checked_count')}</td>
+        <td class="num">${fmtIssue(s, 'judge_failed_count', 'judge_failure_ratio', 'judge_attempted_count')}</td>
+        <td class="num">${fmtMoney(totalCost)}</td>
+      </tr>`;
   }).join('');
+}
+
+function updateCompareSortHeaders() {
+  document.querySelectorAll('#compare-table th[data-sort-key]').forEach(header => {
+    const active = header.dataset.sortKey === state.compareSort.key;
+    header.setAttribute(
+      'aria-sort',
+      active ? (state.compareSort.direction === 'asc' ? 'ascending' : 'descending') : 'none',
+    );
+    const indicator = header.querySelector('.sort-indicator');
+    if (indicator) indicator.textContent = active
+      ? (state.compareSort.direction === 'asc' ? '↑' : '↓')
+      : '↕';
+  });
+}
+
+function bindCompareSorting() {
+  document.querySelectorAll('#compare-table th[data-sort-key] .sort-button').forEach(button => {
+    button.addEventListener('click', () => {
+      const key = button.closest('th').dataset.sortKey;
+      if (state.compareSort.key === key) {
+        state.compareSort.direction = state.compareSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.compareSort = {
+          key,
+          direction: key === 'name' ? 'asc' : 'desc',
+        };
+      }
+      renderCompare();
+    });
+  });
 }
 
 function pairKey(pair) {
@@ -507,6 +636,57 @@ function hidePairTooltip() {
   document.getElementById('pair-tooltip').classList.add('hidden');
 }
 
+function pairWinner(pair) {
+  if (pair.winner === pair.model_a || pair.winner === 'a') return pair.model_a;
+  if (pair.winner === pair.model_b || pair.winner === 'b') return pair.model_b;
+  return null;
+}
+
+function rankPairwiseModels(models, pairs) {
+  const overallScores = new Map(
+    state.data.models.map(model => [model.name, model.summary.avg_score]),
+  );
+  const ranks = new Map(models.map(model => [model, {
+    wins: 0,
+    losses: 0,
+    deltaSum: 0,
+    deltaCount: 0,
+  }]));
+  pairs.forEach(pair => {
+    const left = ranks.get(pair.model_a);
+    const right = ranks.get(pair.model_b);
+    if (!left || !right) return;
+    const winner = pairWinner(pair);
+    if (winner === pair.model_a) {
+      left.wins += 1;
+      right.losses += 1;
+    } else if (winner === pair.model_b) {
+      right.wins += 1;
+      left.losses += 1;
+    }
+    if (pair.mean_score_delta != null) {
+      left.deltaSum += pair.mean_score_delta;
+      right.deltaSum -= pair.mean_score_delta;
+      left.deltaCount += 1;
+      right.deltaCount += 1;
+    }
+  });
+  return [...models].sort((a, b) => {
+    const left = ranks.get(a);
+    const right = ranks.get(b);
+    const leftOutcome = left.wins - left.losses;
+    const rightOutcome = right.wins - right.losses;
+    if (leftOutcome !== rightOutcome) return leftOutcome - rightOutcome;
+    const leftDelta = left.deltaCount ? left.deltaSum / left.deltaCount : -Infinity;
+    const rightDelta = right.deltaCount ? right.deltaSum / right.deltaCount : -Infinity;
+    if (leftDelta !== rightDelta) return leftDelta - rightDelta;
+    const leftScore = overallScores.get(a) ?? -Infinity;
+    const rightScore = overallScores.get(b) ?? -Infinity;
+    if (leftScore !== rightScore) return leftScore - rightScore;
+    return a.localeCompare(b);
+  });
+}
+
 function renderPairwise() {
   const section = document.getElementById('pairwise-section');
   const comparison = state.data.comparisons;
@@ -519,9 +699,12 @@ function renderPairwise() {
 
   const method = comparison.methodology;
   document.getElementById('pairwise-method').textContent =
-    `只比较共同且都有评分的样本；精确同分记平局。置信区间使用 ${method.bootstrap_iterations} 次固定种子的配对 bootstrap。`;
+    `只比较共同且都有评分的样本；精确同分记平局。置信区间使用 ${method.bootstrap_iterations} 次固定种子的配对 bootstrap。矩阵按显著胜场减负场排序，纵轴越靠下整体表现越优。`;
 
-  const models = state.data.models.map(model => model.name).sort((a, b) => a.localeCompare(b));
+  const models = rankPairwiseModels(
+    state.data.models.map(model => model.name),
+    pairs,
+  );
   const pairMap = new Map();
   pairs.forEach(pair => {
     pairMap.set(`${pair.model_a}|||${pair.model_b}`, pair);
@@ -769,6 +952,12 @@ function renderRecords(data) {
     const firstOutput = r.first_output_valid === true ? '可用' : '不可用';
     return `首次调用${firstCall}；首次结果${firstOutput}；重试 ${r.call_retries ?? 0} 次`;
   };
+  const tokenTitle = r => {
+    if (r.cache_read_input_tokens == null && r.cache_write_input_tokens == null) {
+      return `输入 ${r.input_tokens ?? '—'}；输出 ${r.output_tokens ?? '—'}`;
+    }
+    return `未缓存输入 ${r.input_tokens ?? 0}；缓存读 ${r.cache_read_input_tokens ?? 0}；缓存写 ${r.cache_write_input_tokens ?? 0}；输出 ${r.output_tokens ?? 0}`;
+  };
   const tbody = document.getElementById('records-body');
   tbody.innerHTML = data.records.map(r => `
     <tr>
@@ -781,8 +970,15 @@ function renderRecords(data) {
       <td><span class="badge status">${esc(statusText(r))}</span></td>
       <td title="${esc(attemptTitle(r))}"><span class="badge attempts${r.recovered_by_retry === true ? ' recovered' : ''}">${esc(attemptText(r))}</span></td>
       <td>${fmt(r.latency_ms, ' ms')}</td>
-      <td>${fmt(r.total_tokens)}</td>
-      <td>${fmtMoney(calcCost(r.input_tokens, r.output_tokens, r.total_tokens, getModelPrice(r.model)))}</td>
+      <td title="${esc(tokenTitle(r))}">${fmt(r.total_tokens)}</td>
+      <td>${fmtMoney(calcCost(
+        r.input_tokens,
+        r.output_tokens,
+        r.total_tokens,
+        getModelPrice(r.model),
+        r.cache_read_input_tokens,
+        r.cache_write_input_tokens,
+      ))}</td>
     </tr>
   `).join('') || '<tr><td colspan="11" style="text-align:center;color:var(--muted)">无匹配记录</td></tr>';
 
@@ -829,3 +1025,4 @@ loadData().catch(err => {
   document.getElementById('loading').textContent = '加载失败: ' + err.message;
 });
 bindFilters();
+bindCompareSorting();

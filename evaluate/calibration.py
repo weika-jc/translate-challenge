@@ -696,6 +696,8 @@ async def run_human(label_path: Path, output_path: Path, split: str) -> None:
             'judge_input_tokens': judge['input_tokens'],
             'judge_output_tokens': judge['output_tokens'],
             'judge_total_tokens': judge['total_tokens'],
+            'judge_cache_read_input_tokens': judge.get('cache_read_input_tokens'),
+            'judge_cache_write_input_tokens': judge.get('cache_write_input_tokens'),
             'judge_latency_ms': judge['latency_ms'],
             'judge_acceptable_agreement': (
                 judge['success'] and human_acceptable == judge_acceptable

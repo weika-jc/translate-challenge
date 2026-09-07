@@ -140,7 +140,22 @@ def load_csv(path: str) -> list[dict]:
                 'input_tokens': _num(row.get('input_tokens'), int),
                 'output_tokens': _num(row.get('output_tokens'), int),
                 'total_tokens': _num(row.get('total_tokens'), int),
+                'cache_read_input_tokens': _num(
+                    row.get('cache_read_input_tokens'), int,
+                ),
+                'cache_write_input_tokens': _num(
+                    row.get('cache_write_input_tokens'), int,
+                ),
                 'latency_ms': _num(row.get('latency_ms'), float),
+                'judge_input_tokens': _num(row.get('judge_input_tokens'), int),
+                'judge_output_tokens': _num(row.get('judge_output_tokens'), int),
+                'judge_total_tokens': _num(row.get('judge_total_tokens'), int),
+                'judge_cache_read_input_tokens': _num(
+                    row.get('judge_cache_read_input_tokens'), int,
+                ),
+                'judge_cache_write_input_tokens': _num(
+                    row.get('judge_cache_write_input_tokens'), int,
+                ),
                 'judge_latency_ms': _num(row.get('judge_latency_ms'), float),
             })
     return records
@@ -278,6 +293,15 @@ def summarize(records: list[dict]) -> dict:
     input_tokens = [r['input_tokens'] for r in records if r['input_tokens'] is not None]
     output_tokens = [r['output_tokens'] for r in records if r['output_tokens'] is not None]
     total_tokens = [r['total_tokens'] for r in records if r['total_tokens'] is not None]
+    cache_tracked = [
+        r for r in records
+        if r['cache_read_input_tokens'] is not None
+        or r['cache_write_input_tokens'] is not None
+    ]
+    cache_read_tokens = [r['cache_read_input_tokens'] or 0 for r in cache_tracked]
+    cache_write_tokens = [r['cache_write_input_tokens'] or 0 for r in cache_tracked]
+    cache_hit_count = sum(1 for tokens in cache_read_tokens if tokens > 0)
+    cache_write_count = sum(1 for tokens in cache_write_tokens if tokens > 0)
     malformed_count = sum(1 for r in records if r['trans_valid'] is False)
     valid_count = sum(1 for r in records if r['trans_valid'] is True)
     call_failed_count = sum(1 for r in records if r['call_failed'])
@@ -389,6 +413,20 @@ def summarize(records: list[dict]) -> dict:
         'input_tokens_sum': sum(input_tokens) if input_tokens else None,
         'output_tokens_sum': sum(output_tokens) if output_tokens else None,
         'total_tokens_sum': sum(total_tokens) if total_tokens else None,
+        'cache_tracked_count': len(cache_tracked),
+        'cache_hit_count': cache_hit_count,
+        'cache_write_count': cache_write_count,
+        'cache_hit_ratio': round(
+            cache_hit_count / len(cache_tracked) * 100, 2,
+        ) if cache_tracked else None,
+        'avg_cache_read_input_tokens': _avg(cache_read_tokens),
+        'avg_cache_write_input_tokens': _avg(cache_write_tokens),
+        'cache_read_input_tokens_sum': (
+            sum(cache_read_tokens) if cache_tracked else None
+        ),
+        'cache_write_input_tokens_sum': (
+            sum(cache_write_tokens) if cache_tracked else None
+        ),
         'score_distribution': _score_distribution(scores),
         'latency_distribution': _latency_distribution(latencies),
         'by_dataset': _group_stats(records, 'dataset'),

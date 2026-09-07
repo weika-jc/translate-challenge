@@ -2,6 +2,12 @@ import re
 import unittest
 from pathlib import Path
 
+from evaluate.evaluation_prompt import (
+    EVALUATION_PROMPT_DIR,
+    PROMPT_NAMES,
+    build_evaluation_prompt,
+)
+
 
 PROMPT_DIR = Path(__file__).resolve().parents[1] / 'prompt'
 SUPPORTED_LANGUAGES = {
@@ -16,11 +22,52 @@ SUPPORTED_LANGUAGES = {
     'nb': 'Norwegian Bokmål',
     'it': 'Italian',
 }
+LUNA_DIRECT_EXECUTION_BLOCK = (
+    '# Execution Mode\n'
+    'This is a direct translation task that does not require reasoning, analysis, '
+    'or explanation. Translate immediately and return only the required JSON result.\n\n'
+)
 
 
 class PromptLanguageContractTests(unittest.TestCase):
+    def test_luna_no_reasoning_variant_only_adds_direct_execution_instruction(self):
+        for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR):
+            baseline = (directory / 'gpt-5-6-luna').read_text(encoding='utf-8')
+            variant = (directory / 'gpt-5-6-luna-no-reasoning').read_text(
+                encoding='utf-8'
+            )
+            expected = baseline.replace(
+                '# Input Contract\n',
+                f'{LUNA_DIRECT_EXECUTION_BLOCK}# Input Contract\n',
+                1,
+            )
+            with self.subTest(directory=directory.name):
+                self.assertEqual(variant, expected)
+
+    def test_evaluation_prompts_only_remove_profanity_suppression(self):
+        evaluation_names = {
+            path.name for path in EVALUATION_PROMPT_DIR.iterdir() if path.is_file()
+        }
+        self.assertEqual(evaluation_names, set(PROMPT_NAMES))
+        for prompt_name in PROMPT_NAMES:
+            production = (PROMPT_DIR / prompt_name).read_text(encoding='utf-8')
+            evaluation = (EVALUATION_PROMPT_DIR / prompt_name).read_text(encoding='utf-8')
+            with self.subTest(prompt=prompt_name):
+                self.assertEqual(
+                    evaluation,
+                    build_evaluation_prompt(prompt_name, production),
+                )
+                self.assertNotIn('inappropriate language', evaluation)
+                self.assertNotIn('不文明用语', evaluation)
+                self.assertNotIn('****', evaluation)
+
     def test_candidate_prompts_declare_the_product_language_mapping(self):
-        prompt_paths = sorted(path for path in PROMPT_DIR.iterdir() if path.is_file())
+        prompt_paths = sorted(
+            path
+            for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR)
+            for path in directory.iterdir()
+            if path.is_file()
+        )
         self.assertGreater(len(prompt_paths), 0)
         for path in prompt_paths:
             if path.name == 'haiku-4-5':
@@ -37,9 +84,13 @@ class PromptLanguageContractTests(unittest.TestCase):
                     self.assertRegex(content, mapping)
 
     def test_no_prompt_contains_the_old_no_language_patch(self):
-        for path in sorted(PROMPT_DIR.iterdir()):
-            if not path.is_file():
-                continue
+        prompt_paths = [
+            path
+            for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR)
+            for path in sorted(directory.iterdir())
+            if path.is_file()
+        ]
+        for path in prompt_paths:
             content = path.read_text(encoding='utf-8')
             with self.subTest(prompt=path.name):
                 self.assertNotIn('`no` ALWAYS means Norwegian', content)

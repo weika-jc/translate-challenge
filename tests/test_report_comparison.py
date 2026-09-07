@@ -134,6 +134,50 @@ class ReportComparisonTests(unittest.TestCase):
         self.assertEqual(summary['recovered_by_retry_count'], 1)
         self.assertEqual(summary['avg_retries'], 0.5)
 
+    def test_cache_usage_is_summarized_from_explicit_metrics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'cache.csv'
+            fields = [
+                'dataset', 'src', 'tgt', 'raw', 'ref', 'trans_raw', 'trans',
+                'translation_score', 'latency_ms', 'call_success', 'format_valid',
+                'input_tokens', 'output_tokens', 'total_tokens',
+                'cache_read_input_tokens', 'cache_write_input_tokens',
+            ]
+            with path.open('w', encoding='utf-8', newline='') as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows([
+                    {
+                        'dataset': 'demo', 'src': 'en', 'tgt': 'zh',
+                        'raw': 'one', 'ref': '一', 'trans_raw': '{"c":"一"}',
+                        'trans': '一', 'translation_score': '100',
+                        'latency_ms': '10', 'call_success': 'True',
+                        'format_valid': 'True', 'input_tokens': '2',
+                        'output_tokens': '9', 'total_tokens': '1366',
+                        'cache_read_input_tokens': '0',
+                        'cache_write_input_tokens': '1355',
+                    },
+                    {
+                        'dataset': 'demo', 'src': 'en', 'tgt': 'zh',
+                        'raw': 'two', 'ref': '二', 'trans_raw': '{"c":"二"}',
+                        'trans': '二', 'translation_score': '100',
+                        'latency_ms': '10', 'call_success': 'True',
+                        'format_valid': 'True', 'input_tokens': '2',
+                        'output_tokens': '9', 'total_tokens': '1366',
+                        'cache_read_input_tokens': '1355',
+                        'cache_write_input_tokens': '0',
+                    },
+                ])
+
+            summary = summarize(load_models([str(path)])['models'][0]['records'])
+
+        self.assertEqual(summary['cache_tracked_count'], 2)
+        self.assertEqual(summary['cache_hit_count'], 1)
+        self.assertEqual(summary['cache_write_count'], 1)
+        self.assertEqual(summary['cache_hit_ratio'], 50)
+        self.assertEqual(summary['cache_read_input_tokens_sum'], 1355)
+        self.assertEqual(summary['cache_write_input_tokens_sum'], 1355)
+
 
 if __name__ == '__main__':
     unittest.main()

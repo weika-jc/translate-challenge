@@ -18,6 +18,9 @@ def prepare_models_data(csv_paths: list[str]) -> dict:
             'output_per_million': p.output_per_million,
             'billing_mode': p.billing_mode,
             'cached_input_ratio': p.cached_input_ratio,
+            'cache_write_input_ratio': p.cache_write_input_ratio,
+            'cache_read_per_million': p.cache_read_per_million,
+            'cache_write_per_million': p.cache_write_per_million,
         }
     return models_data
 

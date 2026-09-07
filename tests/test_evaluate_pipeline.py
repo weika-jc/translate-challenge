@@ -198,6 +198,10 @@ class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
             patch.object(evaluate_utils, '_converse', converse),
             patch.object(evaluate_utils.asyncio, 'sleep', sleep),
             patch.object(evaluate_utils.random, 'uniform', return_value=0.25),
+            patch.object(
+                evaluate_utils.time, 'perf_counter',
+                side_effect=[0.0, 10.0, 10.25],
+            ),
         ):
             result = await evaluate_utils.translate('prompt-arn', 'Hello', 'es')
 
@@ -209,21 +213,62 @@ class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result['first_call_success'])
         self.assertIsNone(result['first_output_valid'])
         self.assertTrue(result['recovered_by_retry'])
+        self.assertEqual(result['latency_ms'], 250.0)
+
+    async def test_all_failed_calls_have_no_success_latency(self):
+        throttled = ClientError(
+            {'Error': {'Code': 'ThrottlingException', 'Message': 'slow down'}},
+            'Converse',
+        )
+        with (
+            patch.object(evaluate_utils, '_converse', AsyncMock(side_effect=throttled)),
+            patch.object(evaluate_utils.asyncio, 'sleep', AsyncMock()),
+            patch.object(evaluate_utils.random, 'uniform', return_value=0),
+            patch.object(
+                evaluate_utils.time, 'perf_counter', side_effect=[0.0, 1.0, 2.0],
+            ),
+            self.assertRaises(ClientError) as raised,
+        ):
+            await evaluate_utils.translate('prompt-arn', 'Hello', 'es')
+
+        self.assertIsNone(raised.exception.evaluation_metrics['latency_ms'])
+
+    def test_fallback_metrics_use_latest_success_latency(self):
+        merged = evaluate_utils._merge_invocation_metrics(
+            {'attempts': 1, 'latency_ms': 900.0},
+            {'attempts': 1, 'latency_ms': 120.0, 'final_output_valid': True},
+        )
+
+        self.assertEqual(merged['latency_ms'], 120.0)
 
     async def test_translate_retries_unusable_output_and_accumulates_usage(self):
         malformed = {
             'output': {'message': {'content': [{'text': '```json\n{"c":"Hola"}\n```'}]}},
-            'usage': {'inputTokens': 10, 'outputTokens': 5, 'totalTokens': 15},
+            'usage': {
+                'inputTokens': 10,
+                'outputTokens': 5,
+                'totalTokens': 25,
+                'cacheWriteInputTokens': 10,
+            },
         }
         valid = {
             'output': {'message': {'content': [{'text': '{"c":"Hola"}'}]}},
-            'usage': {'inputTokens': 11, 'outputTokens': 4, 'totalTokens': 15},
+            'usage': {
+                'inputTokens': 11,
+                'outputTokens': 4,
+                'totalTokens': 23,
+                'cacheReadInputTokens': 8,
+            },
         }
         converse = AsyncMock(side_effect=[malformed, valid])
         with (
             patch.object(evaluate_utils, '_converse', converse),
             patch.object(evaluate_utils.asyncio, 'sleep', AsyncMock()) as sleep,
             patch.object(evaluate_utils.random, 'uniform', return_value=0),
+            patch.object(
+                evaluate_utils.time, 'perf_counter',
+                side_effect=[0.0, 0.1, 5.0, 5.4],
+            ),
         ):
             result = await evaluate_utils.translate('prompt-arn', 'Hello', 'es')
 
@@ -237,7 +282,10 @@ class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result['recovered_by_retry'])
         self.assertEqual(result['input_tokens'], 21)
         self.assertEqual(result['output_tokens'], 9)
-        self.assertEqual(result['total_tokens'], 30)
+        self.assertEqual(result['total_tokens'], 48)
+        self.assertEqual(result['cache_read_input_tokens'], 8)
+        self.assertEqual(result['cache_write_input_tokens'], 10)
+        self.assertEqual(result['latency_ms'], 400.0)
 
     async def test_translation_validation_error_is_not_retried(self):
         rejected = ClientError(

@@ -36,16 +36,16 @@ You MUST use this table as the sole authoritative source for game-specific terms
 - **Style**: Use casual, natural expressions suitable for a mobile gaming community.
 - **Preservation**: Keep all emojis, symbols, unrecognized abbreviations, and player nicknames 100% unchanged.
 - **Card/Ingredient Trades**: Match with the terminology table first. If no match, keep original item names and translate only modifiers.
-- **Profanity Handling**: 
+- **Profanity Handling**:
   - Clear profanity -> Translate into "inappropriate language" in the target language.
   - Masked profanity (e.g., `****`) -> Keep exactly as-is.
   - Contextual mild language -> Translate normally.
 - **Escape Quotes**: Double quotes (`"`) inside the translated string MUST be escaped as `\"`.
 
 # STRICT OUTPUT FORMAT
-- **First Character Rule**: The VERY FIRST character of your response MUST be `{`. 
+- **First Character Rule**: The VERY FIRST character of your response MUST be `{`.
 - **Last Character Rule**: The VERY LAST character of your response MUST be `}`.
-- **Single-line Constraint**: Output the entire JSON object as a single, raw, continuous line of text. 
+- **Single-line Constraint**: Output the entire JSON object as a single, raw, continuous line of text.
 - **Block Ban**: Do not output "```" or "```json" or any line breaks before or after the JSON. You will be penalized if any characters exist outside the `{}` pair.
 
 # FEW-SHOT EXAMPLES

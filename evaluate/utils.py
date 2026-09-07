@@ -114,11 +114,19 @@ def _sum_usage(responses: list[dict], key: str) -> int | None:
     return sum(values) if values else None
 
 
+def _sum_cache_usage(responses: list[dict], key: str) -> int | None:
+    usages = [response.get('usage', {}) for response in responses]
+    cache_keys = ('cacheReadInputTokens', 'cacheWriteInputTokens')
+    if not any(any(cache_key in usage for cache_key in cache_keys) for usage in usages):
+        return None
+    return sum(usage.get(key, 0) or 0 for usage in usages)
+
+
 def _invocation_metrics(
     *,
     attempts: int,
     responses: list[dict],
-    started_at: float,
+    last_success_latency_ms: float | None,
     first_call_success: bool | None,
     first_output_valid: bool | None,
     final_output_valid: bool | None,
@@ -137,7 +145,15 @@ def _invocation_metrics(
         'input_tokens': _sum_usage(responses, 'inputTokens'),
         'output_tokens': _sum_usage(responses, 'outputTokens'),
         'total_tokens': _sum_usage(responses, 'totalTokens'),
-        'latency_ms': round((time.perf_counter() - started_at) * 1000, 2),
+        'cache_read_input_tokens': _sum_cache_usage(
+            responses, 'cacheReadInputTokens',
+        ),
+        'cache_write_input_tokens': _sum_cache_usage(
+            responses, 'cacheWriteInputTokens',
+        ),
+        # Production does not retry, so latency comparisons use only the most
+        # recent successful Bedrock call rather than retry/backoff wall time.
+        'latency_ms': last_success_latency_ms,
     }
 
 
@@ -155,14 +171,15 @@ async def _converse_with_retry(
     validate_response=None,
     **kwargs,
 ):
-    started_at = time.perf_counter()
     responses = []
+    last_success_latency_ms = None
     first_call_success = None
     first_output_valid = None
     final_output_valid = None
     final_output_error = None
 
     for attempt in range(1, RUNTIME_MAX_ATTEMPTS + 1):
+        attempt_started_at = time.perf_counter()
         try:
             response = await _converse(client=client, **kwargs)
         except Exception as exc:
@@ -171,7 +188,7 @@ async def _converse_with_retry(
             metrics = _invocation_metrics(
                 attempts=attempt,
                 responses=responses,
-                started_at=started_at,
+                last_success_latency_ms=last_success_latency_ms,
                 first_call_success=first_call_success,
                 first_output_valid=first_output_valid,
                 final_output_valid=None,
@@ -184,6 +201,9 @@ async def _converse_with_retry(
                 raise
             retry_reason = f'transient model error: {exc}'
         else:
+            last_success_latency_ms = round(
+                (time.perf_counter() - attempt_started_at) * 1000, 2,
+            )
             responses.append(response)
             if attempt == 1:
                 first_call_success = True
@@ -197,7 +217,7 @@ async def _converse_with_retry(
             metrics = _invocation_metrics(
                 attempts=attempt,
                 responses=responses,
-                started_at=started_at,
+                last_success_latency_ms=last_success_latency_ms,
                 first_call_success=first_call_success,
                 first_output_valid=first_output_valid,
                 final_output_valid=final_output_valid,
@@ -214,10 +234,11 @@ async def _converse_with_retry(
             )
             # Full jitter prevents the eight workers from retrying in lockstep.
             delay = random.uniform(0, ceiling)
-            print(
-                f'[debug] {retry_reason}; retrying attempt '
-                f'{attempt + 1}/{RUNTIME_MAX_ATTEMPTS} in {delay:.2f}s'
-            )
+            if os.environ.get('EVALUATION_VERBOSE_RETRIES') == '1':
+                print(
+                    f'[debug] {retry_reason}; retrying attempt '
+                    f'{attempt + 1}/{RUNTIME_MAX_ATTEMPTS} in {delay:.2f}s'
+                )
             await asyncio.sleep(delay)
 
 
@@ -250,7 +271,6 @@ async def translate(
     structured: bool = False,
 ) -> dict | None:
     tgt = canonical_language_code(tgt)
-    print(f'[debug] translate {txt} -> {tgt}')
     message = f'{txt} -> {tgt}'
     kwargs = {
         'modelId': model_id,
@@ -324,7 +344,19 @@ def _merge_invocation_metrics(first: dict, second: dict) -> dict:
         'input_tokens': add_optional(first.get('input_tokens'), second.get('input_tokens')),
         'output_tokens': add_optional(first.get('output_tokens'), second.get('output_tokens')),
         'total_tokens': add_optional(first.get('total_tokens'), second.get('total_tokens')),
-        'latency_ms': add_optional(first.get('latency_ms'), second.get('latency_ms')),
+        'cache_read_input_tokens': add_optional(
+            first.get('cache_read_input_tokens'),
+            second.get('cache_read_input_tokens'),
+        ),
+        'cache_write_input_tokens': add_optional(
+            first.get('cache_write_input_tokens'),
+            second.get('cache_write_input_tokens'),
+        ),
+        'latency_ms': (
+            second.get('latency_ms')
+            if second.get('latency_ms') is not None
+            else first.get('latency_ms')
+        ),
     }
 
 
@@ -398,6 +430,8 @@ async def rate(raw: str, trans: str, tgt: str, ref: str | None = None) -> dict:
         'input_tokens': metrics.get('input_tokens'),
         'output_tokens': metrics.get('output_tokens'),
         'total_tokens': metrics.get('total_tokens'),
+        'cache_read_input_tokens': metrics.get('cache_read_input_tokens'),
+        'cache_write_input_tokens': metrics.get('cache_write_input_tokens'),
         'latency_ms': metrics.get('latency_ms'),
         'structured': response['structured'],
         'attempts': metrics.get('attempts'),
@@ -425,6 +459,8 @@ def _failed_rate_result(
         'input_tokens': metrics.get('input_tokens'),
         'output_tokens': metrics.get('output_tokens'),
         'total_tokens': metrics.get('total_tokens'),
+        'cache_read_input_tokens': metrics.get('cache_read_input_tokens'),
+        'cache_write_input_tokens': metrics.get('cache_write_input_tokens'),
         'latency_ms': metrics.get('latency_ms'),
         'structured': structured,
         'attempts': metrics.get('attempts'),

@@ -60,20 +60,20 @@
           <table class="compare-table" id="compare-table">
             <thead>
               <tr>
-                <th>模型</th>
-                <th>样本数</th>
-                <th>平均分</th>
-                <th>中位数</th>
-                <th>最低/最高</th>
-                <th>平均延迟</th>
-                <th>P95 延迟</th>
-                <th>&lt;50 分占比</th>
-                <th>格式错误</th>
-                <th>调用失败</th>
-                <th>语言错误</th>
-                <th>规则失败</th>
-                <th>Judge 失败</th>
-                <th>总价（估算）</th>
+                <th data-sort-key="name" aria-sort="none"><button class="sort-button" type="button">模型 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="count" aria-sort="none"><button class="sort-button" type="button">样本数 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="avgScore" aria-sort="descending"><button class="sort-button" type="button">平均分 <span class="sort-indicator" aria-hidden="true">↓</span></button></th>
+                <th data-sort-key="medianScore" aria-sort="none"><button class="sort-button" type="button">中位数 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="scoreRange" aria-sort="none" title="按最低分排序"><button class="sort-button" type="button">最低/最高 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="avgLatency" aria-sort="none"><button class="sort-button" type="button">平均延迟 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="p95Latency" aria-sort="none"><button class="sort-button" type="button">P95 延迟 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="lowScore" aria-sort="none"><button class="sort-button" type="button">&lt;50 分占比 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="malformed" aria-sort="none"><button class="sort-button" type="button">格式错误 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="callFailed" aria-sort="none"><button class="sort-button" type="button">调用失败 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="languageFailed" aria-sort="none"><button class="sort-button" type="button">语言错误 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="policyFailed" aria-sort="none"><button class="sort-button" type="button">规则失败 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="judgeFailed" aria-sort="none"><button class="sort-button" type="button">Judge 失败 <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
+                <th data-sort-key="totalCost" aria-sort="none"><button class="sort-button" type="button">总价（估算） <span class="sort-indicator" aria-hidden="true">↕</span></button></th>
               </tr>
             </thead>
             <tbody></tbody>

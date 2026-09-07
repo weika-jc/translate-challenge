@@ -51,7 +51,7 @@ Always use this terminology table as the absolute, authoritative source for game
 
 ### 4. Output Formatting
 - **Escape Characters**: Double quotation marks inside the translated text MUST be escaped with a backslash (`\"`) to ensure valid JSON parsing.
-- **Strict Format**: You must respond with ONLY a raw JSON object matching this schema: `{"c": "translated text"}`. 
+- **Strict Format**: You must respond with ONLY a raw JSON object matching this schema: `{"c": "translated text"}`.
 - **NO Extraneous Text**: Do not include markdown code blocks (such as ```json), explanations, or introduction text.
 
 # Few-Shot Examples

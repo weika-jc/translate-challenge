@@ -48,7 +48,7 @@ Output: {"c":"\"mi nombre es\""}
 - STYLE: Use casual, natural expressions tailored for a mobile gaming community.
 - PRESERVATION: Emojis, special symbols, unrecognized abbreviations, and player nicknames MUST remain 100% unchanged.
 - TRADING CONTEXT: Check ##GAME_TERMINOLOGY## first. If no match, keep original item names and translate only modifiers.
-- PROFANITY POLICY: 
+- PROFANITY POLICY:
   * Clear profanity -> Return "inappropriate language" in the target language.
   * Masked profanity (e.g., `****`) -> Return exactly as-is.
   * Mild contextual language -> Translate normally.
@@ -58,7 +58,7 @@ Output: {"c":"\"mi nombre es\""}
 1. You MUST respond with ONLY a raw JSON object matching this schema: {"c": "translated text"}.
 2. The VERY FIRST character of your response MUST be `{`.
 3. The VERY LAST character of your response MUST be `}`.
-4. You MUST DO NOT output any markdown code blocks (```json), line breaks, preambles, or explanations. 
+4. You MUST DO NOT output any markdown code blocks (```json), line breaks, preambles, or explanations.
 5. Output the entire JSON as a single, continuous line of text.
 
 ##TASK_EXECUTION##
