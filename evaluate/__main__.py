@@ -25,7 +25,7 @@ output_dir = 'result'
 work_dir = '.evaluation'
 limit = 10
 model_name = 'haiku-4-5-opt'
-model_id = 'arn:aws:bedrock:us-west-2:686465264859:prompt/7ZJL56AKIU'  # test model
+model_id = os.environ.get('BEDROCK_PROMPT_ARN', '')
 translation_structured_output = True
 
 records = []
@@ -358,13 +358,21 @@ def _ordered_rows(samples: list[dict], rows: dict[str, dict]) -> list[dict]:
     return [rows[sample['record_id']] for sample in samples if sample['record_id'] in rows]
 
 
-def _write_result(path: Path, rows: list[dict]) -> None:
+def _public_result_row(row: dict) -> dict:
+    public = dict(row)
+    if ':prompt/' in str(public.get('model_id', '')):
+        public['model_id'] = 'managed-prompt'
+    return public
+
+
+def _write_result(path: Path, rows: list[dict], redact_prompt_arn: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(f'{path.suffix}.tmp')
     with temporary.open('w', encoding='utf-8', newline='') as handle:
         writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
         writer.writeheader()
-        writer.writerows({field: row.get(field) for field in CSV_FIELDS} for row in rows)
+        output_rows = (_public_result_row(row) for row in rows) if redact_prompt_arn else rows
+        writer.writerows({field: row.get(field) for field in CSV_FIELDS} for row in output_rows)
     os.replace(temporary, path)
 
 
@@ -446,7 +454,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('--work-dir', default=work_dir)
     parser.add_argument('--limit', type=int, default=limit, help='records per language file')
     parser.add_argument('--model-name', default=model_name)
-    parser.add_argument('--model-id', default=model_id)
+    parser.add_argument(
+        '--model-id', default=model_id,
+        help='managed Prompt ARN (defaults to BEDROCK_PROMPT_ARN)',
+    )
     parser.add_argument(
         '--structured-output',
         action=argparse.BooleanOptionalAction,
@@ -458,7 +469,10 @@ def _parse_args() -> argparse.Namespace:
         '--resume', action=argparse.BooleanOptionalAction, default=True,
         help='reuse per-record checkpoints (default: enabled)',
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.model_id:
+        parser.error('--model-id or BEDROCK_PROMPT_ARN is required')
+    return args
 
 
 async def run(args: argparse.Namespace) -> None:
@@ -506,7 +520,7 @@ async def run(args: argparse.Namespace) -> None:
         )
         if len(judged_rows) != len(translated_rows):
             raise RuntimeError('judge stage ended before all translated rows were checkpointed')
-        _write_result(result_path, judged_rows)
+        _write_result(result_path, judged_rows, redact_prompt_arn=True)
         print(f'evaluation result: {result_path.resolve()}')
 
 

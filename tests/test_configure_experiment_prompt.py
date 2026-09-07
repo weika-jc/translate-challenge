@@ -1,14 +1,19 @@
 import unittest
 
 from evaluate.configure_experiment_prompt import (
-    EXPERIMENT_PROMPT_ID,
+    _public_model_id,
     build_variant,
 )
 
 
 class ConfigureExperimentPromptTests(unittest.TestCase):
-    def test_tool_is_hard_scoped_to_the_experiment_prompt(self):
-        self.assertEqual(EXPERIMENT_PROMPT_ID, '7ZJL56AKIU')
+    def test_redacts_account_specific_inference_profile_arn(self):
+        self.assertEqual(
+            _public_model_id(
+                f"arn:aws:bedrock:region:{'0' * 12}:inference-profile/model-id"
+            ),
+            'model-id',
+        )
 
     def test_builds_default_chat_variant_with_optional_cache(self):
         cached = build_variant('system text', 'model-id', True)

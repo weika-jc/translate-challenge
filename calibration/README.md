@@ -4,11 +4,11 @@
 
 运行在线校准前需保证 `aigc` profile 可用；凭证过期时先执行 `aws sso login --profile aigc`。
 
-`human-labels.csv` 已使用当前 `bingofrenzy-translator` Draft 重新翻译；实际模型和 Prompt ARN 记录在匿名映射文件中。需要再次刷新候选时运行：
+`human-labels.csv` 已使用当前 `bingofrenzy-translator` Draft 重新翻译；公开映射文件只保留模型标签和脱敏后的 Prompt 标识。需要再次刷新候选时运行：
 
 ```shell
 python -m evaluate.calibration refresh-human \
-  --prompt-arn arn:aws:bedrock:us-west-2:686465264859:prompt/7ZJL56AKIU
+  --prompt-arn "$BEDROCK_PROMPT_ARN"
 ```
 
 ## 人工标注

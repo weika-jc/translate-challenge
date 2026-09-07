@@ -3,13 +3,19 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import boto3
 
 
-EXPERIMENT_PROMPT_ID = '7ZJL56AKIU'
 REGION = 'us-west-2'
+
+
+def _public_model_id(model_id: str) -> str:
+    if ':inference-profile/' in model_id:
+        return model_id.rsplit('/', 1)[-1]
+    return model_id
 
 
 def build_variant(
@@ -49,6 +55,7 @@ def build_variant(
 
 
 def configure(
+    prompt_identifier: str,
     prompt_path: Path,
     model_id: str,
     use_cache: bool,
@@ -58,19 +65,19 @@ def configure(
     session = boto3.Session(profile_name='aigc')
     client = session.client('bedrock-agent', region_name=REGION)
     current = client.get_prompt(
-        promptIdentifier=EXPERIMENT_PROMPT_ID,
+        promptIdentifier=prompt_identifier,
         promptVersion='DRAFT',
     )
     variant = build_variant(prompt_text, model_id, use_cache, use_reasoning)
     client.update_prompt(
-        promptIdentifier=EXPERIMENT_PROMPT_ID,
+        promptIdentifier=prompt_identifier,
         name=current['name'],
         description=current.get('description', ''),
         defaultVariant=variant['name'],
         variants=[variant],
     )
     verified = client.get_prompt(
-        promptIdentifier=EXPERIMENT_PROMPT_ID,
+        promptIdentifier=prompt_identifier,
         promptVersion='DRAFT',
     )
     verified_variant = next(
@@ -85,8 +92,8 @@ def configure(
     if verified_variant['modelId'] != model_id or verified_text != prompt_text:
         raise RuntimeError('experiment Prompt verification failed after update')
     return {
-        'prompt_id': EXPERIMENT_PROMPT_ID,
-        'model_id': verified_variant['modelId'],
+        'prompt_id': 'managed-prompt',
+        'model_id': _public_model_id(verified_variant['modelId']),
         'prompt_file': str(prompt_path),
         'prompt_sha256': hashlib.sha256(verified_text.encode('utf-8')).hexdigest(),
         'cache_point': any(
@@ -100,7 +107,11 @@ def configure(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=f'Configure experiment Prompt {EXPERIMENT_PROMPT_ID}',
+        description='Configure an experiment Prompt Management Draft',
+    )
+    parser.add_argument(
+        '--prompt-id', default=os.environ.get('BEDROCK_PROMPT_ID'),
+        help='Prompt ID (defaults to BEDROCK_PROMPT_ID)',
     )
     parser.add_argument('--prompt-file', type=Path, required=True)
     parser.add_argument('--model-id', required=True)
@@ -112,13 +123,22 @@ def _parse_args() -> argparse.Namespace:
         '--reasoning', action=argparse.BooleanOptionalAction, default=False,
         help='enable the Bedrock Prompt Management Reasoning configuration',
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.prompt_id:
+        parser.error('--prompt-id or BEDROCK_PROMPT_ID is required')
+    return args
 
 
 def main() -> None:
     args = _parse_args()
     print(json.dumps(
-        configure(args.prompt_file, args.model_id, args.cache, args.reasoning),
+        configure(
+            args.prompt_id,
+            args.prompt_file,
+            args.model_id,
+            args.cache,
+            args.reasoning,
+        ),
         ensure_ascii=False,
         indent=2,
     ))

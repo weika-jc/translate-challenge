@@ -1,0 +1,2 @@
+result/*.csv text eol=lf whitespace=-trailing-space
+calibration/*.csv text eol=lf whitespace=-trailing-space

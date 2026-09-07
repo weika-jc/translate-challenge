@@ -457,8 +457,8 @@ async def refresh_human_candidates(
         mapping.append({
             'candidate_id': row['candidate_id'],
             'model': _model_label(actual_model_id),
-            'prompt_arn': prompt_arn,
-            'actual_model_id': actual_model_id,
+            'prompt_arn': 'managed-prompt',
+            'actual_model_id': _model_label(actual_model_id),
             'translation_latency_ms': result['latency_ms'],
             'policy_pass': policy.passed,
             'policy_violations': json.dumps(
@@ -482,8 +482,8 @@ async def refresh_human_candidates(
         'labels': str(label_path),
         'mapping': str(map_path),
         'count': len(rows),
-        'prompt_arn': prompt_arn,
-        'actual_model_id': actual_model_id,
+        'prompt_arn': 'managed-prompt',
+        'actual_model_id': _model_label(actual_model_id),
         'model': _model_label(actual_model_id),
         'policy_failures': sum(not item['policy_pass'] for item in mapping),
     }, ensure_ascii=False, indent=2))

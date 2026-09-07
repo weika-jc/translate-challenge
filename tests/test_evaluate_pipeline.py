@@ -17,6 +17,13 @@ class EvaluatePipelineTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         pipeline.records.clear()
 
+    def test_public_result_redacts_managed_prompt_arn(self):
+        prompt_arn = f"arn:aws:bedrock:region:{'0' * 12}:prompt/example"
+        self.assertEqual(
+            pipeline._public_result_row({'model_id': prompt_arn})['model_id'],
+            'managed-prompt',
+        )
+
     async def test_parsed_candidate_is_sent_to_judge_and_statuses_are_recorded(self):
         translation_result = {
             'text': '{"c":"Bonjour 3 🎉"}',

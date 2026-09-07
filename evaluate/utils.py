@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import random
 import time
 import boto3
@@ -70,7 +71,9 @@ sts_client = session.client(
         read_timeout=10,
     ),
 )
-sonnet_model_id = 'arn:aws:bedrock:us-west-2:686465264859:inference-profile/us.anthropic.claude-sonnet-4-6'
+sonnet_model_id = os.environ.get(
+    'BEDROCK_JUDGE_MODEL_ID', 'us.anthropic.claude-sonnet-4-6',
+)
 _structured_output_supported: bool | None = None
 
 
