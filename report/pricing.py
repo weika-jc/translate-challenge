@@ -42,7 +42,7 @@ PRICES: dict[str, ModelPricing] = {
         cached_input_ratio=0.10,
         cache_write_input_ratio=1.25,
     ),
-    'gpt-5-6-luna-no-reasoning': ModelPricing(
+    'gpt-5-6-luna-effort-none': ModelPricing(
         input_per_million=0.2200,
         output_per_million=1.3200,
         billing_mode='cached_prompt',

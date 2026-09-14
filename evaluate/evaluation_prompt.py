@@ -12,7 +12,6 @@ PROMPT_NAMES = (
     'gemma-3-27b',
     'glm-5',
     'gpt-5-6-luna',
-    'gpt-5-6-luna-no-reasoning',
     'gpt-oss-120b',
     'haiku-4-5',
     'haiku-4-5-opt',
@@ -43,7 +42,7 @@ def _remove_suppression_examples(text: str, prompt_name: str) -> str:
         pattern = rf'^Input: "{source}" -> [^\n]+\nOutput: [^\n]+\n'
     elif prompt_name in {'gemma-3-27b', 'gpt-oss-120b', 'llama-4-maverick'}:
         pattern = rf'^- Input: "{source}" -> [^\n]+\n  Output: [^\n]+\n'
-    elif prompt_name in {'gpt-5-6-luna', 'gpt-5-6-luna-no-reasoning'}:
+    elif prompt_name == 'gpt-5-6-luna':
         pattern = rf'^- Input: `{source} -> [^`\n]+`\n  Output: `[^\n]+`\n'
     elif prompt_name == 'haiku-4-5':
         pattern = rf'^"{source}" → [^\n]+\n\{{[^\n]+\}}\n\n'
@@ -84,7 +83,7 @@ def build_evaluation_prompt(prompt_name: str, production: str) -> str:
             '',
             prompt_name,
         )
-    elif prompt_name in {'gpt-5-6-luna', 'gpt-5-6-luna-no-reasoning'}:
+    elif prompt_name == 'gpt-5-6-luna':
         text = _replace_once(
             text,
             r'# Profanity Rules\n.*?(?=# Output Contract\n)',

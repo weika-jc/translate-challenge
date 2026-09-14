@@ -1,6 +1,5 @@
 const STATIC_MODE = typeof window.REPORT_DATA !== 'undefined';
 const HIDDEN_MODEL_TABS = new Set([
-  'gpt-5-6-luna-no-reasoning',
   'nova-pro',
   'deepseek-v3-2',
 ]);
@@ -347,6 +346,20 @@ function renderOverview() {
     : `${models.length} 个模型 · ${s.count} 条记录`;
 
   document.getElementById('subtitle').textContent = subtitle;
+
+  const experiment = state.viewMode === 'single' ? models[0].experiment : null;
+  const experimentNote = document.getElementById('experiment-note');
+  experimentNote.classList.toggle('hidden', !experiment);
+  experimentNote.textContent = experiment
+    ? [
+      experiment.api,
+      `reasoning effort = ${experiment.reasoning_effort ?? '默认'}`,
+      experiment.explicit_cache_configuration === false
+        ? '未配置显式缓存；缓存命中按实际 usage 统计' : '',
+      experiment.prompt_file,
+      s.call_failed_count ? '成本按返回 usage 估算；超时请求的消耗可能缺失' : '',
+    ].filter(Boolean).join(' · ')
+    : '';
 
   const cards = [
     { label: '平均评分', value: fmt(s.avg_score), cls: `score-${scoreClass(s.avg_score)}` },

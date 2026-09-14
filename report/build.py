@@ -12,6 +12,16 @@ def prepare_models_data(csv_paths: list[str]) -> dict:
     models_data = load_models(csv_paths)
     models_data['pricing'] = {}
     for m in models_data['models']:
+        metadata_path = Path(m['path']).with_suffix('.metadata.json')
+        if metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+            m['experiment'] = {
+                'api': metadata.get('api'),
+                'reasoning_effort': metadata.get('additionalModelRequestFields', {})
+                    .get('reasoning', {}).get('effort'),
+                'explicit_cache_configuration': metadata.get('explicit_cache_configuration'),
+                'prompt_file': metadata.get('prompt_file'),
+            }
         p = get_pricing(m['name'])
         models_data['pricing'][m['name']] = {
             'input_per_million': p.input_per_million,

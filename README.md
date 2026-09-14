@@ -33,7 +33,7 @@ python -m report --build
 
 Judge 校准样本和操作说明见 [calibration/README.md](calibration/README.md)。当前评测 CSV 会分别记录调用、JSON 格式、目标语言、业务规则和 Judge 状态；`translation_structured` 表示翻译调用是否启用 Bedrock Structured Outputs，`translation_score` 是 MQM-lite 错误经固定权重计算出的语言质量分，`score` 暂时作为兼容别名保留。
 
-`haiku-4-5` 是复现原线上 Prompt 与调用方式的固定对照组，即使模型支持也必须关闭 Structured Outputs。`haiku-4-5-opt` 显式启用 Structured Outputs，Schema 为 `{"c": string}`；`haiku-4-5-opt-cache` 以该 XML Prompt 为基础补充真实聊天示例，并在 Prompt Management 中仅缓存固定 system prompt，同样启用 Structured Outputs。Schema 被拒绝时不会自动降级；输出不可解析时会按统一策略重试，并通过首次输出可用率保留格式能力差异。GPT-5.6 Luna 的 Bedrock 方案将该开关保持为 `False`，只通过 Prompt 约束输出格式；它使用 `us.openai.gpt-5.6-luna` inference profile，并保留 Prompt Management 中不可调的默认推理行为。
+`haiku-4-5` 是复现原线上 Prompt 与调用方式的固定对照组，即使模型支持也必须关闭 Structured Outputs。`haiku-4-5-opt` 显式启用 Structured Outputs，Schema 为 `{"c": string}`；`haiku-4-5-opt-cache` 以该 XML Prompt 为基础补充真实聊天示例，并在 Prompt Management 中仅缓存固定 system prompt，同样启用 Structured Outputs。Schema 被拒绝时不会自动降级；输出不可解析时会按统一策略重试，并通过首次输出可用率保留格式能力差异。GPT-5.6 Luna 的 Bedrock 方案将该开关保持为 `False`，只通过 Prompt 约束输出格式；它使用 `us.openai.gpt-5.6-luna` inference profile；既有 `gpt-5-6-luna` 结果保留当时的默认推理配置。Prompt Management 的 `additionalModelRequestFields` 可保存 `{"reasoning":{"effort":"none"}}`，但本账户实测 Luna 的 Converse 调用拒绝 system `cachePoint`。
 
 Prompt ARN 和 Prompt ID 不写入仓库。运行评测时通过 `BEDROCK_PROMPT_ARN` 或 `--model-id` 传入；更新 Prompt Management Draft 时通过 `BEDROCK_PROMPT_ID` 或 `--prompt-id` 传入。每次只配置并运行一个实验模型，完成后再切换下一个。对外结果会将 Prompt ARN 记为 `managed-prompt`，不暴露具体资源标识。
 
@@ -47,6 +47,20 @@ python -m evaluate.manage_prompt_parameters
 
 业务 Prompt 保留在 `prompt/`；评分时使用 `prompt-eval/` 中的同名文件。评分版仅移除了不当言论的整句替换规则和对应示例，其余翻译契约必须与业务版同步。业务 Prompt 变更后运行 `python -m evaluate.evaluation_prompt` 重建评分版，同步测试会拒绝其他差异。
 
-`gpt-5-6-luna-no-reasoning` 是 Luna 的独立实验方案：只在基础 Luna Prompt 中增加“这是直接翻译任务、不需要推理或解释、立即返回 JSON 结果”的指令。该名称描述的是 Prompt 实验变量，不代表 Bedrock 调用参数关闭了模型推理。
-
 报告会用 `dataset + src + tgt + raw + ref` 识别同一样本，展示方案两两之间的配对胜/平/负、平均分差及配对 bootstrap 95% 置信区间。只有两个方案都有评分的共同样本才进入质量分比较，缺失覆盖会单独显示；数据集、语言方向和结构化错误类型可在配对明细中查看。
+
+`gpt-5-6-luna-effort-none` 复用现有 Prompt Management + Converse 评测流程，使用 `prompt/gpt-5-6-luna` 原文。Prompt Draft 的额外参数仅设置为 `{"reasoning":{"effort":"none"}}`，不配置 `cachePoint`、`prompt_cache_options` 或 `prompt_cache_key`；实际缓存行为以服务返回的 usage 为准。翻译和 Judge 各以 8 路并发，使用与既有 Luna 完全一致的 1,480 条基准样本和评分方法，结果单独写入 CSV：
+
+```shell
+BEDROCK_PROMPT_ARN='your-managed-prompt-arn' python -u -m evaluate \
+  --model-name gpt-5-6-luna-effort-none --no-structured-output --no-resume
+python -m report --build
+```
+
+新方案的脱敏配置、prompt 哈希与样本哈希保存在结果旁的 `.metadata.json`。成本沿用工程中未缓存输入、缓存读取、缓存写入和输出四项独立费率，累计重试消耗；模型成本仅包含翻译，Judge tokens 另行记录。
+
+完整结果与成本比较见 [Luna effort none 分析](result/gpt-5-6-luna-effort-none.analysis.md)。
+
+## 待优化
+
+- [ ] 构思并验证在服务器上部署评测 runner 的方案，以获取更准确、可复现的网络延迟等指标。评估部署区域与 Bedrock 区域的关系，保留一致的基准集、调用参数和并发策略；记录每次尝试的耗时、超时及重试等待，在服务提供数据时区分服务端处理时间与客户端端到端耗时，避免只统计成功请求造成偏差。

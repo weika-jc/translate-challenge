@@ -10,12 +10,6 @@ class ReportPricingTests(unittest.TestCase):
             get_pricing('haiku-4-5'),
         )
 
-    def test_luna_prompt_variants_share_pricing(self):
-        self.assertEqual(
-            get_pricing('gpt-5-6-luna-no-reasoning'),
-            get_pricing('gpt-5-6-luna'),
-        )
-
     def test_luna_uses_us_geo_cache_read_pricing(self):
         pricing = get_pricing('gpt-5-6-luna')
 

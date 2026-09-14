@@ -22,11 +22,6 @@ SUPPORTED_LANGUAGES = {
     'nb': 'Norwegian Bokmål',
     'it': 'Italian',
 }
-LUNA_DIRECT_EXECUTION_BLOCK = (
-    '# Execution Mode\n'
-    'This is a direct translation task that does not require reasoning, analysis, '
-    'or explanation. Translate immediately and return only the required JSON result.\n\n'
-)
 
 
 class PromptLanguageContractTests(unittest.TestCase):
@@ -58,20 +53,6 @@ class PromptLanguageContractTests(unittest.TestCase):
             )
             with self.subTest(directory=directory.name):
                 self.assertEqual(targets, expected_targets)
-
-    def test_luna_no_reasoning_variant_only_adds_direct_execution_instruction(self):
-        for directory in (PROMPT_DIR, EVALUATION_PROMPT_DIR):
-            baseline = (directory / 'gpt-5-6-luna').read_text(encoding='utf-8')
-            variant = (directory / 'gpt-5-6-luna-no-reasoning').read_text(
-                encoding='utf-8'
-            )
-            expected = baseline.replace(
-                '# Input Contract\n',
-                f'{LUNA_DIRECT_EXECUTION_BLOCK}# Input Contract\n',
-                1,
-            )
-            with self.subTest(directory=directory.name):
-                self.assertEqual(variant, expected)
 
     def test_evaluation_prompts_only_remove_profanity_suppression(self):
         evaluation_names = {

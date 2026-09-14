@@ -10,7 +10,6 @@ INDEX_HTML = (ROOT / 'report/static/index.html').read_text(encoding='utf-8')
 class ReportStaticTests(unittest.TestCase):
     def test_crowded_models_are_hidden_from_tabs_only(self):
         for model in (
-            'gpt-5-6-luna-no-reasoning',
             'nova-pro',
             'deepseek-v3-2',
         ):
